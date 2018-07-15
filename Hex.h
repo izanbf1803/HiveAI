@@ -11,14 +11,6 @@ namespace Hive
     class Hex // Hexagon
     {
         public:
-            /*
-                layer : [0, 1]
-                color : [0, 2]
-                x : [0, NPIECES]
-                y : [0, NPIECES]
-            */
-            int layer, color, x, y;
-            Piece piece;
             friend std::ostream& operator<<(std::ostream& os, const Hex& h);
             Hex() : layer(0), color(0), x(0), y(0), piece(None) {};
             Hex(int _x, int _y) : layer(0), color(0), x(_x), y(_y), piece(None) {};
@@ -28,6 +20,12 @@ namespace Hive
             Hex(int _layer, int _color, int _x, int _y, Piece _piece) {
                 setup(_layer, _color, _x, _y, _piece); 
             };
+            // layer : [0, 1]
+            // color : [0, 2]
+            // x : [0, NPIECES]
+            // y : [0, NPIECES]
+            int layer, color, x, y;
+            Piece piece;
         private:
             void setup(int _layer, int _color, int _x, int _y, Piece _piece);
     };
