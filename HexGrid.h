@@ -13,18 +13,13 @@ namespace Hive
     class HexGrid // Hexag Grid
     {
         public:
-            array<array<array<Hex,NPIECES>,NPIECES>,2> grid; // layer, y, x
+            array<array<array<Hex,2>,NPIECES>,NPIECES> grid; // x, y, layer
             HexGrid() {}
-            array<array<Hex,NPIECES>,NPIECES>& operator[](int layer);
+            inline array<array<Hex,2>,NPIECES>& operator[](int i) { 
+            	return grid[i]; 
+            };
         private:
     };
-
-    array<array<Hex,NPIECES>,NPIECES>& HexGrid::operator[](int layer)
-    {
-        assert(layer >= 0 and layer <= 1);
-
-        return grid[layer];
-    }
 
 }
 

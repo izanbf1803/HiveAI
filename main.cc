@@ -1,18 +1,19 @@
-#include "HexGrid.h"
+#include "Hive.h"
 #include <iostream>
 using namespace Hive;
 using namespace std;
 
 int main(int argc, char** argv)
 {
-    HexGrid g;
-    for (int i = 0; i < g[0].size(); ++i) {
-        for (int j = 0; j < g[0][i].size(); ++j) {
-            g[0][i][j] = Hex(1, 2, 3, (Piece)4);
-            cout << g[0][i][j] << ' ';
-        }
-        cout << endl;
-    }
+    Game game(Piece::Ant);
+    auto g = game.get_grid();
+
+    for (int y = 0; y < NPIECES; ++y) {
+    	for (int x = 0; x < NPIECES; ++x) {
+    		cout << g[x][y][0] << ' ';
+    	}
+    	cout << endl;
+    }	
 
     return 0;
 }

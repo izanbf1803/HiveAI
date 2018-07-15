@@ -1,2 +1,2 @@
 all:
-	g++ main.cc -o main -std=gnu++11 -O0
+	g++ main.cc -o main -std=gnu++11 -static -O0
