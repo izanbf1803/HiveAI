@@ -5,8 +5,10 @@ namespace Hive
 {
 
 	const int NPIECES = 22; // Number of pieces
+	const int GSIDE = NPIECES; // Grid side size
 
-	enum Piece { None, Ant, Bee, Beetle, Grasshopper, Spider };
+	enum Piece { NoPiece = -1, Ant = 0, Bee = 1, Beetle = 2, Grasshopper = 3, Spider = 4 };
+	enum Color { NoColor = -1, Black = 0, White = 1 };
 
 }
 

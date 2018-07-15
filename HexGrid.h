@@ -13,10 +13,10 @@ namespace Hive
     {
         public:
             HexGrid() {}
-            inline array<array<Hex,2>,NPIECES>& operator[](int i) { 
+            inline array<array<Hex,2>,GSIDE>& operator[](int i) { 
             	return grid[i]; 
             };
-            array<array<array<Hex,2>,NPIECES>,NPIECES> grid; // x, y, layer
+            array<array<array<Hex,2>,GSIDE>,GSIDE> grid; // x, y, layer
         private:
     };
 
