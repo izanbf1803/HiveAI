@@ -1,4 +1,4 @@
-#ifndef HIVE_HEX_H
+    #ifndef HIVE_HEX_H
 #define HIVE_HEX_H
 
 #include "Constants.h"

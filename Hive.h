@@ -10,7 +10,7 @@ using std::array;
 using std::vector;
 using std::queue;
 
-namespace Hive 
+namespace Hive
 {
 
 	class Game 
@@ -24,6 +24,7 @@ namespace Hive
 			bool is_locked(Hex p);
 			bool is_outside(Hex p); 
 			bool has_neighbour_with_color(Hex p, Color color);
+			bool can_move(Color color);
 			inline void spawn(int x, int y, Color color, Piece piece);
 			vector<Hex> ant_valid_moves(Hex p);
 			vector<Hex> bee_valid_moves(Hex p);
@@ -31,6 +32,7 @@ namespace Hive
 			vector<Hex> grasshopper_valid_moves(Hex p);
 			vector<Hex> spider_valid_moves(Hex p);
 			HexGrid grid;
+			array<bool,2> queen_spawned;
 			const array<array<Hex,6>,2> dirs = {{
 				{{ // Even x:
 					Hex(0, -1),
@@ -55,7 +57,7 @@ namespace Hive
 	Game::Game(Piece player_first_piece)
 	{
 		assert(player_first_piece != Piece::NoPiece);
-
+		queen_spawned[0] = queen_spawned[1] = false;
 		spawn(GSIDE/2, GSIDE/2-1, Color::Black, Piece::Ant); // TODO: IA
 		spawn(GSIDE/2, GSIDE/2, Color::White, player_first_piece);
 	}
@@ -85,15 +87,27 @@ namespace Hive
  		return false;
 	}
 
+	bool Game::can_move(Color color)
+	{
+		if (color == Color::NoColor) {
+			return false;
+		}
+		return queen_spawned[(int)color];
+	}
+
 	inline void Game::spawn(int x, int y, Color color, Piece piece)
 	{
-		std::cout << "Used: " << x << ", " << y << std::endl;
+		std::cout << "Used: " << x << ", " << y << std::endl; //
+		if (piece == Piece::Bee) {
+			queen_spawned[(int)color] = true;
+		}
 		grid[x][y][0] = Hex(0, color, x, y, piece);
 	}
 
 	vector<Hex> Game::valid_spawns(Color color)
 	{
 		assert(color == 0 or color == 1);
+
 		vector<Hex> vs; // valid spawns
 		vector<vector<bool>> visited(GSIDE, vector<bool>(GSIDE, false));
 		queue<Hex> q;
@@ -142,7 +156,7 @@ namespace Hive
 	
 	vector<Hex> Game::spider_valid_moves(Hex p)
 	{
-		return vector<Hex>(); // TODO: implement	
+		return vector<Hex>(); // TODO: implement
 	}
 
 	vector<Hex> Game::valid_moves(Hex p)
@@ -166,6 +180,7 @@ namespace Hive
 				return spider_valid_moves(p);
 		}
 
+		assert(false);
 		return vector<Hex>(); // Fatal error
 	}
 
