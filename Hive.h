@@ -33,6 +33,10 @@ namespace Hive
 			vector<Hex> spider_valid_moves(Hex p);
 			HexGrid grid;
 			array<bool,2> queen_spawned;
+			const array<Hex,2> initial_pos = {{
+				Hex(GSIDE/2, GSIDE/2-1), // Black
+				Hex(GSIDE/2, GSIDE/2), // White
+			}};
 			const array<array<Hex,6>,2> dirs = {{
 				{{ // Even x:
 					Hex(0, -1),
@@ -58,8 +62,8 @@ namespace Hive
 	{
 		assert(player_first_piece != Piece::NoPiece);
 		queen_spawned[0] = queen_spawned[1] = false;
-		spawn(GSIDE/2, GSIDE/2-1, Color::Black, Piece::Ant); // TODO: IA
-		spawn(GSIDE/2, GSIDE/2, Color::White, player_first_piece);
+		spawn(initial_pos[Color::Black].x, initial_pos[Color::Black].y, Color::Black, Piece::Ant); // TODO: IA
+		spawn(initial_pos[Color::White].x, initial_pos[Color::White].y, Color::White, player_first_piece);
 	}
 
 	bool Game::is_locked(Hex p)
@@ -111,7 +115,7 @@ namespace Hive
 		vector<Hex> vs; // valid spawns
 		vector<vector<bool>> visited(GSIDE, vector<bool>(GSIDE, false));
 		queue<Hex> q;
-		q.push(Hex(GSIDE/2, GSIDE/2));
+		q.push(initial_pos[color]);
 		while (not q.empty()) {
 			Hex h = q.front();
 			q.pop();

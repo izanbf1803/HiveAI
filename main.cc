@@ -32,7 +32,7 @@
 using namespace Hive;
 using namespace std;
 
-const int WIDTH = 800, HEIGHT = 600;
+const int WIDTH = 600, HEIGHT = 600;
 const int offset_x = 16, offset_y = 14;
 
 SDL_Renderer* renderer = NULL;
@@ -42,7 +42,6 @@ int hex_w = -1, hex_h = -1;
 
 void draw_circle(int cx, int cy, int r)
 {
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 1);
     int r2 = r*r;
     for (int x = -r; x <= r; ++x) {
         for (int y = -r; y <= r; ++y) {
@@ -102,6 +101,8 @@ int main( int argc, char *argv[] )
     hex_w = 24;
     hex_h = hexgrid_img->h;
 
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
     SDL_Event windowEvent;
     while (true) {
         if (SDL_PollEvent(&windowEvent)) {
@@ -111,11 +112,36 @@ int main( int argc, char *argv[] )
         }
         
         draw_hexgrid();
-        for (int i = 0; i * hex_w < WIDTH; ++i) {
-            for (int j = 0; j * hex_h < HEIGHT; ++j) {
-                int x = i * hex_w;
-                int y = j * hex_h - (i&1 ? hexgrid_img->h/2 : 0);
-                draw_circle(x+offset_x, y+offset_y, 10);
+
+        // DEBUG: 
+        for (int x = 0; x < NPIECES; ++x) {
+            for (int y = 0; y < NPIECES; ++y) {
+                int sx = x * hex_w;
+                int sy = y * hex_h - (x&1 ? hexgrid_img->h/2 : 0);
+                if (g[x][y][0].piece != Piece::NoPiece) {
+                    SDL_SetRenderDrawColor(
+                        renderer, 
+                        (g[x][y][0].color == 0 ? 255 : 0), 
+                        0, 
+                        (g[x][y][0].color == 1 ? 255 : 0), 
+                        255
+                    );
+                    draw_circle(sx+offset_x, sy+offset_y, 10);
+                }
+            }
+        }
+        for (Color c : {Color::Black, Color::White}) {
+            for (Hex h : game.valid_spawns(c)) {
+                int sx = h.x * hex_w;
+                int sy = h.y * hex_h - (h.x&1 ? hexgrid_img->h/2 : 0);
+                SDL_SetRenderDrawColor(
+                    renderer, 
+                    (c == 0 ? 255 : 0), 
+                    0, 
+                    (c == 1 ? 255 : 0), 
+                    75
+                );
+                draw_circle(sx+offset_x, sy+offset_y, 10);
             }
         }
 
