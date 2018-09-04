@@ -32,12 +32,13 @@
 using namespace Hive;
 using namespace std;
 
-const int WIDTH = 600, HEIGHT = 600;
-const int offset_x = 16, offset_y = 14;
+const int WIDTH = 800, HEIGHT = 800;
 
 SDL_Renderer* renderer = NULL;
 SDL_Surface* hexgrid_img = NULL;
 SDL_Texture* hexgrid_tex = NULL;
+SDL_Surface* pieces_img[2][5]; // {color, piece id}
+SDL_Texture* pieces_tex[2][5]; // {color, piece id}
 int hex_w = -1, hex_h = -1;
 
 void draw_circle(int cx, int cy, int r)
@@ -52,25 +53,37 @@ void draw_circle(int cx, int cy, int r)
     }
 }
 
-void draw_hexgrid()
+void draw_hex(SDL_Texture* texture, int hexgrid_x, int hexgrid_y)
+{
+    int x = hexgrid_x * hex_w;
+    int y = hexgrid_y * hex_h - (hexgrid_x & 1 ? hexgrid_img->h/2 : 0);
+    SDL_Rect dstrect = { x, y, hexgrid_img->w, hexgrid_img->h };
+    SDL_RenderCopy(renderer, texture, NULL, &dstrect);
+}
+
+void draw_hexgrid(Game& game)
 {
     assert(hex_w >= 0 and hex_h >= 0);
 
     for (int i = -1; i * hex_w <= WIDTH; ++i) {
         for (int j = -1; j * hex_h <= HEIGHT; ++j) {
-            int x = i * hex_w;
-            int y = j * hex_h - (i&1 ? hexgrid_img->h/2 : 0);
-            SDL_Rect dstrect = { x, y, hexgrid_img->w, hexgrid_img->h };
-            SDL_RenderCopy(renderer, hexgrid_tex, NULL, &dstrect);
+            auto g = game.get_grid();
+            if (game.is_outside(Hex(i, j)) or g[i][j][0].piece == Piece::NoPiece) {
+                draw_hex(hexgrid_tex, i, j);
+            }
+            else {
+                const Hex& h = g[i][j][0];
+                draw_hex(pieces_tex[(int)h.color][(int)h.piece], i, j);
+            }
         }
     }
 }
 
-int main( int argc, char *argv[] )
+int main(int argc, char *argv[])
 {
     SDL_Init(SDL_INIT_EVERYTHING);
 
-    SDL_Window *window = SDL_CreateWindow("Hello SDL World", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);
+    SDL_Window *window = SDL_CreateWindow("HiveAI", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);
     
     // Check that the window was successfully created
     if (NULL == window) {
@@ -96,10 +109,16 @@ int main( int argc, char *argv[] )
 
 
     renderer = SDL_CreateRenderer(window, -1, 0);
-    hexgrid_img = SDL_LoadBMP("img/hexagon.bmp");
+    hexgrid_img = SDL_LoadBMP("img/hex/hexagon.bmp");
     hexgrid_tex = SDL_CreateTextureFromSurface(renderer, hexgrid_img);
-    hex_w = 24;
+    hex_w = 3 * hexgrid_img->w / 4;
     hex_h = hexgrid_img->h;
+    for (int i = 0; i < 2; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            pieces_img[i][j] = SDL_LoadBMP(("img/hex/p" + to_string(i) + to_string(j) + ".bmp").c_str());
+            pieces_tex[i][j] = SDL_CreateTextureFromSurface(renderer, pieces_img[i][j]);
+        }
+    }   
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
@@ -111,27 +130,12 @@ int main( int argc, char *argv[] )
             }
         }
         
-        draw_hexgrid();
+        draw_hexgrid(game);
 
         // DEBUG: 
-        for (int x = 0; x < NPIECES; ++x) {
-            for (int y = 0; y < NPIECES; ++y) {
-                int sx = x * hex_w;
-                int sy = y * hex_h - (x&1 ? hexgrid_img->h/2 : 0);
-                if (g[x][y][0].piece != Piece::NoPiece) {
-                    SDL_SetRenderDrawColor(
-                        renderer, 
-                        (g[x][y][0].color == 0 ? 255 : 0), 
-                        0, 
-                        (g[x][y][0].color == 1 ? 255 : 0), 
-                        255
-                    );
-                    draw_circle(sx+offset_x, sy+offset_y, 10);
-                }
-            }
-        }
         for (Color c : {Color::Black, Color::White}) {
             for (Hex h : game.valid_spawns(c)) {
+            // for (Hex h : game.valid_moves(Hex(GSIDE/2, GSIDE/2-1))) {
                 int sx = h.x * hex_w;
                 int sy = h.y * hex_h - (h.x&1 ? hexgrid_img->h/2 : 0);
                 SDL_SetRenderDrawColor(
@@ -141,7 +145,7 @@ int main( int argc, char *argv[] )
                     (c == 1 ? 255 : 0), 
                     75
                 );
-                draw_circle(sx+offset_x, sy+offset_y, 10);
+                draw_circle(sx+hexgrid_img->w/2, sy+hexgrid_img->h/2, 10);
             }
         }
 

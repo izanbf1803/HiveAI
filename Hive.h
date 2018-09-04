@@ -20,12 +20,13 @@ namespace Hive
 			const HexGrid& get_grid() const { return grid; }
 			vector<Hex> valid_moves(Hex p);
 			vector<Hex> valid_spawns(Color color);
-		private:
 			bool is_locked(Hex p);
 			bool is_outside(Hex p); 
+			bool is_accessible(Hex p);
 			bool has_neighbour_with_color(Hex p, Color color);
 			bool can_move(Color color);
-			inline void spawn(int x, int y, Color color, Piece piece);
+		private:
+			void spawn(int x, int y, Color color, Piece piece);
 			vector<Hex> ant_valid_moves(Hex p);
 			vector<Hex> bee_valid_moves(Hex p);
 			vector<Hex> beetle_valid_moves(Hex p);
@@ -79,6 +80,24 @@ namespace Hive
 		return false;
 	}
 
+	bool Game::is_accessible(Hex p)
+	{
+		vector<bool> isfree(6, false);
+		int index = -1;
+		for (const Hex& dir : dirs[p.x%2]) {
+			++index;
+			Hex h = p + dir;
+			isfree[index] = (is_outside(h) or grid[h.x][h.y][0].piece == Piece::NoPiece);
+		}
+		bool accessible = false;
+		for (int i = 1; i < 6; ++i) {
+			if (isfree[i-1] and isfree[i]) {
+				accessible = true;
+			}
+		}
+		return accessible;
+	}
+
 	bool Game::has_neighbour_with_color(Hex p, Color color)
 	{
 		for (const Hex& dir : dirs[p.x%2]) {
@@ -99,7 +118,7 @@ namespace Hive
 		return queen_spawned[(int)color];
 	}
 
-	inline void Game::spawn(int x, int y, Color color, Piece piece)
+	void Game::spawn(int x, int y, Color color, Piece piece)
 	{
 		std::cout << "Used: " << x << ", " << y << std::endl; //
 		if (piece == Piece::Bee) {
@@ -140,7 +159,30 @@ namespace Hive
 
 	vector<Hex> Game::ant_valid_moves(Hex p)
 	{
-		return vector<Hex>(); // TODO: implement
+		vector<Hex> vm; // valid moves
+		vector<vector<bool>> visited(GSIDE, vector<bool>(GSIDE, false));
+		queue<Hex> q;
+		q.push(initial_pos[p.color]);
+		while (not q.empty()) {
+			Hex h = q.front();
+			q.pop();
+			for (const Hex& dir : dirs[h.x%2]) {
+				Hex h2 = h + dir;
+				if (not is_outside(h2) and not visited[h2.x][h2.y]) {
+					if (is_accessible(grid[h2.x][h2.y][0])) {
+						vm.push_back(h2);
+					}
+					visited[h2.x][h2.y] = true;
+					if (grid[h2.x][h2.y][0].piece != Piece::NoPiece)
+					{
+						q.push(h2);
+					}
+				}
+			}
+		}
+		return vm;
+
+		// return vector<Hex>(); // TODO: implement
 	}
 
 	vector<Hex> Game::bee_valid_moves(Hex p)
@@ -171,6 +213,10 @@ namespace Hive
 			return vector<Hex>();
 		}
 		
+		if (not can_move(p.color)) {
+			return vector<Hex>();
+		}
+
 		switch(p.piece) {
 			case Ant:
 				return ant_valid_moves(p);
