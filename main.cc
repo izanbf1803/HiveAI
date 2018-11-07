@@ -32,7 +32,7 @@
 using namespace Hive;
 using namespace std;
 
-const int WIDTH = 800, HEIGHT = 800;
+const int WIDTH = 700, HEIGHT = 700;
 
 SDL_Renderer* renderer = NULL;
 SDL_Surface* hexgrid_img = NULL;
@@ -111,6 +111,9 @@ int main(int argc, char *argv[])
     renderer = SDL_CreateRenderer(window, -1, 0);
     hexgrid_img = SDL_LoadBMP("img/hex/hexagon.bmp");
     hexgrid_tex = SDL_CreateTextureFromSurface(renderer, hexgrid_img);
+    float hexgrid_scale = 1.0 * HEIGHT / NPIECES / hexgrid_img->h;
+    hexgrid_img->h *= hexgrid_scale;
+    hexgrid_img->w *= hexgrid_scale;
     hex_w = 3 * hexgrid_img->w / 4;
     hex_h = hexgrid_img->h;
     for (int i = 0; i < 2; ++i) {
