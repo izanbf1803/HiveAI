@@ -73,7 +73,7 @@ void draw_hexgrid(Game& game)
             }
             else {
                 const Hex& h = g[i][j][0];
-                draw_hex(pieces_tex[(int)h.color][(int)h.piece], i, j);
+                draw_hex(pieces_tex[int(h.color)][int(h.piece)], i, j);
             }
         }
     }
@@ -112,8 +112,8 @@ int main(int argc, char *argv[])
     hexgrid_img = SDL_LoadBMP("img/hex/hexagon.bmp");
     hexgrid_tex = SDL_CreateTextureFromSurface(renderer, hexgrid_img);
     float hexgrid_scale = 1.0 * HEIGHT / NPIECES / hexgrid_img->h;
-    hexgrid_img->h *= hexgrid_scale;
     hexgrid_img->w *= hexgrid_scale;
+    hexgrid_img->h *= hexgrid_scale;
     hex_w = 3 * hexgrid_img->w / 4;
     hex_h = hexgrid_img->h;
     for (int i = 0; i < 2; ++i) {
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
                     (c == 1 ? 255 : 0), 
                     75
                 );
-                draw_circle(sx+hexgrid_img->w/2, sy+hexgrid_img->h/2, 10);
+                draw_circle(sx+hexgrid_img->w/2, sy+hexgrid_img->h/2, hexgrid_img->h/3);
             }
         }
 
