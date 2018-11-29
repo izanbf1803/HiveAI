@@ -28,6 +28,7 @@
 
 #include <SDL2/SDL.h>
 #include "Hive.h"
+#include "Constants.h"
 #include <iostream>
 using namespace Hive;
 using namespace std;
@@ -40,6 +41,12 @@ SDL_Texture* hexgrid_tex = NULL;
 SDL_Surface* pieces_img[2][5]; // {color, piece id}
 SDL_Texture* pieces_tex[2][5]; // {color, piece id}
 int hex_w = -1, hex_h = -1;
+int mouse_x, mouse_y;
+
+inline int grid_to_screen_x(int x) { return x * hex_w; }
+inline int grid_to_screen_y(int grid_x, int y) { return y * hex_h - (grid_x & 1 ? hexgrid_img->h/2 : 0); }
+inline int screen_to_grid_x(int x) { return x / hex_w; }
+inline int screen_to_grid_y(int grid_x, int y) { return (y + (grid_x & 1 ? hexgrid_img->h/2 : 0)) / hex_h; }
 
 void draw_circle(int cx, int cy, int r)
 {
@@ -79,6 +86,16 @@ void draw_hexgrid(Game& game)
     }
 }
 
+void draw_piece(int piece)
+{  
+    int x = mouse_x - hexgrid_img->w/2;
+    int y = mouse_y - hexgrid_img->h/2;
+    SDL_Rect dstrect = { x, y, hexgrid_img->w, hexgrid_img->h };
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, pieces_img[player_color][piece]);
+    SDL_SetTextureAlphaMod(tex, 175);
+    SDL_RenderCopy(renderer, tex, NULL, &dstrect);
+}
+
 int main(int argc, char *argv[])
 {
     SDL_Init(SDL_INIT_EVERYTHING);
@@ -111,7 +128,7 @@ int main(int argc, char *argv[])
     renderer = SDL_CreateRenderer(window, -1, 0);
     hexgrid_img = SDL_LoadBMP("img/hex/hexagon.bmp");
     hexgrid_tex = SDL_CreateTextureFromSurface(renderer, hexgrid_img);
-    float hexgrid_scale = 1.0 * HEIGHT / NPIECES / hexgrid_img->h;
+    float hexgrid_scale = 1.0 * HEIGHT / (NPIECES * hexgrid_img->h);
     hexgrid_img->w *= hexgrid_scale;
     hexgrid_img->h *= hexgrid_scale;
     hex_w = 3 * hexgrid_img->w / 4;
@@ -125,15 +142,46 @@ int main(int argc, char *argv[])
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    SDL_Event windowEvent;
+    int selectedPiece = 0;
+    SDL_Event event;
     while (true) {
-        if (SDL_PollEvent(&windowEvent)) {
-            if (SDL_QUIT == windowEvent.type) {
+        SDL_GetMouseState(&mouse_x, &mouse_y);
+        if (SDL_PollEvent(&event)) {
+            if (SDL_QUIT == event.type) {
                 break;
             }
+            else if (SDL_MOUSEBUTTONUP == event.type) {
+                switch (event.button.button) {
+                    case SDL_BUTTON_LEFT: {
+                        int x = screen_to_grid_x(mouse_x);
+                        int y = screen_to_grid_y(x, mouse_y);
+                        bool valid = game.put_piece(x, y, player_color, (Piece)selectedPiece);
+                        cout << valid << endl;
+                        break;
+                    }
+                    default: break;
+                }
+            }
+            else if (SDL_TEXTINPUT == event.type) {
+                char c = tolower(event.text.text[0]);
+                if (c >= '1' and c <= '5') {
+                    selectedPiece = c - '0' - 1;
+                }
+
+            }
+            // else if (SDL_KEYDOWN == event.type) {
+            //     // switch (event.key.keysym.sym) {
+            //     //     case SDLK_1
+
+            //     //     default:
+            //     //         break;
+            //     // }
+            //     cout << event.key.keysym.unicode << endl;
+            // }
         }
         
         draw_hexgrid(game);
+        draw_piece(selectedPiece);
 
         // DEBUG: 
         for (Color c : {Color::Black, Color::White}) {

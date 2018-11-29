@@ -25,6 +25,7 @@ namespace Hive
 			bool is_accessible(Hex p);
 			bool has_neighbour_with_color(Hex p, Color color);
 			bool can_move(Color color);
+			bool put_piece(int x, int y, Color color, Piece piece);
 		private:
 			void spawn(int x, int y, Color color, Piece piece);
 			vector<Hex> ant_valid_moves(Hex p);
@@ -63,8 +64,8 @@ namespace Hive
 	{
 		assert(player_first_piece != Piece::NoPiece);
 		queen_spawned[0] = queen_spawned[1] = false;
-		spawn(initial_pos[Color::Black].x, initial_pos[Color::Black].y, Color::Black, Piece::Ant); // TODO: IA
-		spawn(initial_pos[Color::White].x, initial_pos[Color::White].y, Color::White, player_first_piece);
+		spawn(initial_pos[ia_color].x, initial_pos[ia_color].y, ia_color, Piece::Ant); // TODO: IA
+		spawn(initial_pos[player_color].x, initial_pos[player_color].y, player_color, player_first_piece);
 	}
 
 	bool Game::is_locked(Hex p)
@@ -118,11 +119,33 @@ namespace Hive
 		return queen_spawned[(int)color];
 	}
 
+	bool Game::put_piece(int x, int y, Color color, Piece piece)
+	{
+		// !!!!!!!!!! NOT WORKING !!!!!!!!!!!!!!!!
+		// TODO: implement check for invalid movement
+		Hex h = Hex(0, color, x, y, piece);
+
+		if (is_locked(h)) return false;
+
+		bool is_valid = false;
+		for (Hex pos : valid_spawns(color)) {
+			if (pos.x == h.x and pos.y == h.y) {
+				is_valid = true;
+				break;
+			}
+		}
+
+		if (not is_valid) return false;
+
+		grid[x][y][0] = h;
+		return true;
+	}
+
 	void Game::spawn(int x, int y, Color color, Piece piece)
 	{
 		std::cout << "Used: " << x << ", " << y << std::endl; //
 		if (piece == Piece::Bee) {
-			queen_spawned[(int)color] = true;
+			queen_spawned[int(color)] = true;
 		}
 		grid[x][y][0] = Hex(0, color, x, y, piece);
 	}

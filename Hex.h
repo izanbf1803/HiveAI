@@ -20,7 +20,7 @@ namespace Hive
             Hex(int _layer, Color _color, int _x, int _y, Piece _piece) {
                 setup(_layer, _color, _x, _y, _piece); 
             };
-            Hex operator+(Hex h) const;
+            Hex operator+(const Hex& h) const;
             // layer : [0, 1]
             // color : [-1, 1]
             // x : [0, GSIDE]
@@ -57,7 +57,7 @@ namespace Hive
         piece = _piece;
     }
 
-    Hex Hex::operator+(Hex h) const
+    Hex Hex::operator+(const Hex& h) const
     {
         return Hex(layer, color, x + h.x, y + h.y, piece);
     }
