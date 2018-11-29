@@ -121,8 +121,8 @@ namespace Hive
 
 	bool Game::put_piece(int x, int y, Color color, Piece piece)
 	{
-		// !!!!!!!!!! NOT WORKING !!!!!!!!!!!!!!!!
-		// TODO: implement check for invalid movement
+		if (x < 0 or y < 0 or x >= GSIDE or y >= GSIDE) return false;
+		
 		Hex h = Hex(0, color, x, y, piece);
 
 		if (is_locked(h)) return false;

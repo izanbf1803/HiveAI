@@ -8,7 +8,7 @@ namespace Hive
 	enum Color { NoColor = -1, Black = 0, White = 1 };
 
 	const int NPIECES = 24; // Number of pieces
-	const int GSIDE = NPIECES; // Grid side size
+	const int GSIDE = 30; // Grid side size
 	const Color player_color = Color::White;
 	const Color ia_color = Color::Black;
 
