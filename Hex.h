@@ -1,4 +1,4 @@
-    #ifndef HIVE_HEX_H
+#ifndef HIVE_HEX_H
 #define HIVE_HEX_H
 
 #include "Constants.h"
@@ -12,15 +12,14 @@ namespace Hive
     {
         public:
             friend std::ostream& operator<<(std::ostream& os, const Hex& h);
-            Hex() : layer(0), color(Color::NoColor), x(0), y(0), piece(Piece::NoPiece) {};
-            Hex(int _x, int _y) : layer(0), color(Color::NoColor), x(_x), y(_y), piece(Piece::NoPiece) {};
-            Hex(int _layer, Color _color, int _x, int _y) { 
-                setup(_layer, _color, _x, _y, NoPiece); 
-            };
+            Hex() : layer(-1), color(Color::NoColor), x(-1), y(-1), piece(Piece::NoPiece) {};
+            Hex(int _x, int _y) : layer(-1), color(Color::NoColor), x(_x), y(_y), piece(Piece::NoPiece) {};
+            Hex(int _layer, int _x, int _y) : layer(_layer), color(Color::NoColor), x(_x), y(_y), piece(Piece::NoPiece) {};
             Hex(int _layer, Color _color, int _x, int _y, Piece _piece) {
                 setup(_layer, _color, _x, _y, _piece); 
             };
             Hex operator+(const Hex& h) const;
+            bool operator==(const Hex& h) const;
             // layer : [0, 1]
             // color : [-1, 1]
             // x : [0, GSIDE]
@@ -40,15 +39,14 @@ namespace Hive
 
     void Hex::setup(int _layer, Color _color, int _x, int _y, Piece _piece)
     {
-        if (_piece != Piece::NoPiece) {
-            // Error if real piece is outside grid bounds or has invalid color
-            assert(
-                _layer >= 0 and _layer <= 1
-                and color != Color::NoColor
-                and _x >= 0 and _x < GSIDE
-                and _y >= 0 and _y < GSIDE
-            );
-        }
+        // Error if real piece is outside grid bounds or has invalid color / piece
+        assert(
+            _layer >= 0 and _layer <= 1
+            and _color != Color::NoColor
+            and _piece != Piece::NoPiece
+            and _x >= 0 and _x < GSIDE
+            and _y >= 0 and _y < GSIDE
+        );
 
         layer = _layer;
         color = _color;
@@ -60,6 +58,14 @@ namespace Hive
     Hex Hex::operator+(const Hex& h) const
     {
         return Hex(layer, color, x + h.x, y + h.y, piece);
+    }
+
+    bool Hex::operator==(const Hex& h) const
+    {
+        return layer == h.layer
+            and x == h.x and y == h.y 
+            and color == h.color 
+            and piece == h.piece;
     }
 
 }

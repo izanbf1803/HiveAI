@@ -1,6 +1,9 @@
 #ifndef HIVE_CONSTANTS_H
 #define HIVE_CONSTANTS_H
 
+// DEBUG:
+#define D(x) std::cout << #x << " = " << (x) << ", "
+
 namespace Hive
 {
 

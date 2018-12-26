@@ -14,6 +14,8 @@ SDL_Surface* pieces_img[2][5]; // {color, piece id}
 SDL_Texture* pieces_tex[2][5]; // {color, piece id}
 int hex_w = -1, hex_h = -1;
 int mouse_x, mouse_y;
+int selected_piece = 0;
+Hex selected_hex = Hex();
 
 inline int grid_to_screen_x(int x) { return x * hex_w; }
 inline int grid_to_screen_y(int grid_x, int y) { return y * hex_h - (grid_x & 1 ? hexgrid_img->h/2 : 0); }
@@ -43,16 +45,23 @@ void draw_hex(SDL_Texture* texture, int hexgrid_x, int hexgrid_y)
 void draw_hexgrid(Game& game)
 {
     assert(hex_w >= 0 and hex_h >= 0);
-
+    // TODO: implement multiple layers
     for (int i = -1; i * hex_w <= WIDTH; ++i) {
         for (int j = -1; j * hex_h <= HEIGHT; ++j) {
-            auto g = game.get_grid();
-            if (game.is_outside(Hex(i, j)) or g[i][j][0].piece == Piece::NoPiece) {
+            if (game.is_outside(Hex(0, i, j)) or game.grid[i][j][0].piece == Piece::NoPiece) {
                 draw_hex(hexgrid_tex, i, j);
             }
             else {
-                const Hex& h = g[i][j][0];
-                draw_hex(pieces_tex[int(h.color)][int(h.piece)], i, j);
+                const Hex& h = game.grid[i][j][0];
+                SDL_Texture* texture = pieces_tex[int(h.color)][int(h.piece)];
+                if (h == selected_hex) {
+                    SDL_SetTextureAlphaMod(texture, 75);
+                }
+                draw_hex(texture, i, j);
+                if (h == selected_hex) {
+                    // Restore
+                    SDL_SetTextureAlphaMod(texture, 255);
+                }
             }
         }
     }
@@ -66,6 +75,22 @@ void draw_piece(int piece)
     SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, pieces_img[player_color][piece]);
     SDL_SetTextureAlphaMod(tex, 175);
     SDL_RenderCopy(renderer, tex, NULL, &dstrect);
+}
+
+bool select_piece(Game& game, int x, int y, Color player_color)
+{
+    if (selected_hex.color == player_color) {
+        selected_hex = Hex();
+        return true;
+    }
+    else {
+        Hex h = game.grid[x][y][0];
+        if (h.color == player_color) {
+            selected_hex = h;
+            return true;
+        }
+    }
+    return false;
 }
 
 int main(int argc, char *argv[])
@@ -82,20 +107,13 @@ int main(int argc, char *argv[])
     }
     
     Game game(Piece::Ant);
-    auto g = game.get_grid();
     for (int y = 0; y < GSIDE; ++y) {
     	for (int x = 0; x < GSIDE; ++x) {
-    		cout << g[x][y][0] << ' ';
+    		cout << game.grid[x][y][0] << ' ';
     	}
     	cout << endl;
     }
     cout << endl << endl;
-    cout << Hex(1, 1) + Hex(-1, 2) << endl;
-    cout << endl << endl;
-    for (Hex h : game.valid_spawns((Color)1)) {
-    	cout << "::" << h << endl;
-    }
-
 
     renderer = SDL_CreateRenderer(window, -1, 0);
     hexgrid_img = SDL_LoadBMP("img/hex/hexagon.bmp");
@@ -114,32 +132,50 @@ int main(int argc, char *argv[])
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    int selectedPiece = 0;
     SDL_Event event;
     while (true) {
         SDL_GetMouseState(&mouse_x, &mouse_y);
         if (SDL_PollEvent(&event)) {
+            int x = screen_to_grid_x(mouse_x);
+            int y = screen_to_grid_y(x, mouse_y);
             if (SDL_QUIT == event.type) {
                 break;
             }
             else if (SDL_MOUSEBUTTONUP == event.type) {
                 switch (event.button.button) {
                     case SDL_BUTTON_LEFT: {
-                        int x = screen_to_grid_x(mouse_x);
-                        int y = screen_to_grid_y(x, mouse_y);
-                        bool valid = game.put_piece(x, y, player_color, (Piece)selectedPiece);
-                        cout << valid << endl;
+                        bool valid = false;
+                        if (selected_hex.color == Color::NoColor) {
+                            valid = game.put_piece(x, y, player_color, (Piece)selected_piece);
+                        }
+                        else {
+                            valid = game.move_piece(x, y, selected_hex);
+                            if (valid) {
+                                selected_hex = Hex();
+                            }
+                        }
+                        cout << "PUT_event " << valid << endl;
+                        break;
+                    }
+                    case SDL_BUTTON_RIGHT: {
+                        bool valid = select_piece(game, x, y, player_color);
+                        cout << "PICK_event " << valid << endl;
                         break;
                     }
                     default: break;
                 }
+                D(selected_hex) <<  endl;
             }
             else if (SDL_TEXTINPUT == event.type) {
                 char c = tolower(event.text.text[0]);
                 if (c >= '1' and c <= '5') {
-                    selectedPiece = c - '0' - 1;
+                    selected_piece = c - '0' - 1;
                 }
 
+                // DEBUG:
+                if (c == 'd') {
+                    cout << "--> " << x << " " << y << endl;
+                }
             }
             // else if (SDL_KEYDOWN == event.type) {
             //     // switch (event.key.keysym.sym) {
@@ -153,12 +189,18 @@ int main(int argc, char *argv[])
         }
         
         draw_hexgrid(game);
-        draw_piece(selectedPiece);
+        if (selected_hex.color == Color::NoColor) {
+            draw_piece(selected_piece);
+        }
+        else {
+            draw_piece(selected_hex.piece);
+        }
 
-        // DEBUG: 
+        // DEBUG:
         for (Color c : {Color::Black, Color::White}) {
-            for (Hex h : game.valid_spawns(c)) {
-            // for (Hex h : game.valid_moves(Hex(GSIDE/2, GSIDE/2-1))) {
+            for (Hex h : ((selected_hex.piece == Piece::NoPiece or c != player_color) 
+                    ? game.valid_spawns(c) : game.valid_moves(game.grid[selected_hex]))) 
+            {
                 int sx = h.x * hex_w;
                 int sy = h.y * hex_h - (h.x&1 ? hexgrid_img->h/2 : 0);
                 SDL_SetRenderDrawColor(
@@ -169,6 +211,8 @@ int main(int argc, char *argv[])
                     75
                 );
                 draw_circle(sx+hexgrid_img->w/2, sy+hexgrid_img->h/2, hexgrid_img->h/3);
+                // Restore:
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             }
         }
 
