@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
         // DEBUG:
         for (Color c : {Color::Black, Color::White}) {
             for (Hex h : ((selected_hex.piece == Piece::NoPiece or c != player_color) 
-                    ? game.valid_spawns(c) : game.valid_moves(game.grid[selected_hex]))) 
+                    ? game.valid_spawns(c) : game.valid_moves(game.grid[selected_hex])))
             {
                 int sx = h.x * hex_w;
                 int sy = h.y * hex_h - (h.x&1 ? hexgrid_img->h/2 : 0);

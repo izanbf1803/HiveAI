@@ -4,10 +4,9 @@
 #include "Hex.h"
 #include <array>
 
-using std::array;
-
 namespace Hive 
 {
+    using std::array;
 
     class HexGrid // Hexag Grid
     {

@@ -15,11 +15,10 @@ namespace Hive
             Hex() : layer(-1), color(Color::NoColor), x(-1), y(-1), piece(Piece::NoPiece) {};
             Hex(int _x, int _y) : layer(-1), color(Color::NoColor), x(_x), y(_y), piece(Piece::NoPiece) {};
             Hex(int _layer, int _x, int _y) : layer(_layer), color(Color::NoColor), x(_x), y(_y), piece(Piece::NoPiece) {};
-            Hex(int _layer, Color _color, int _x, int _y, Piece _piece) {
-                setup(_layer, _color, _x, _y, _piece); 
-            };
+            Hex(int _layer, Color _color, int _x, int _y, Piece _piece) : layer(_layer), color(_color), x(_x), y(_y), piece(_piece) {};
             Hex operator+(const Hex& h) const;
             bool operator==(const Hex& h) const;
+            inline long long id() const;
             // layer : [0, 1]
             // color : [-1, 1]
             // x : [0, GSIDE]
@@ -28,7 +27,6 @@ namespace Hive
             Color color;
             Piece piece;
         private:
-            void setup(int _layer, Color _color, int _x, int _y, Piece _piece);
     };
 
     std::ostream& operator<<(std::ostream& os, const Hex& h)
@@ -36,24 +34,6 @@ namespace Hive
         os << '{' << h.layer << ',' << h.color << ',' << h.x << ',' << h.y << ',' << h.piece << '}';
         return os;  
     }  
-
-    void Hex::setup(int _layer, Color _color, int _x, int _y, Piece _piece)
-    {
-        // Error if real piece is outside grid bounds or has invalid color / piece
-        assert(
-            _layer >= 0 and _layer <= 1
-            and _color != Color::NoColor
-            and _piece != Piece::NoPiece
-            and _x >= 0 and _x < GSIDE
-            and _y >= 0 and _y < GSIDE
-        );
-
-        layer = _layer;
-        color = _color;
-        x = _x;
-        y = _y;
-        piece = _piece;
-    }
 
     Hex Hex::operator+(const Hex& h) const
     {
@@ -66,6 +46,11 @@ namespace Hive
             and x == h.x and y == h.y 
             and color == h.color 
             and piece == h.piece;
+    }
+
+    inline long long Hex::id() const
+    {
+        return (((long long)x)<<12LL) + (((long long)y)<<6LL) + (long long)layer;
     }
 
 }
