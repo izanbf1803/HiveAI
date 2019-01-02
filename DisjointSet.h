@@ -12,32 +12,28 @@ namespace DisjointSet
 	class DisjointSet
 	{
 	public:
-		DisjointSet() {};
+		DisjointSet();
 		bool add(ll id);
 		bool erase(ll id);
 		ll find(ll id);
 		bool merge(ll a, ll b);
-		inline int count() const { return parent.size(); };
+		int count() const { return cnt; }
 	private:
 		map<ll,ll> parent, size;
+		int cnt;
 	};
+
+	DisjointSet::DisjointSet()
+	{
+		cnt = 0;
+	}
 
 	bool DisjointSet::add(ll id) 
 	{
 		if (not parent.count(id)) {
 			size[id] = 1;
 			parent[id] = id;
-			return true;
-		}
-		return false;
-	}
-
-	bool DisjointSet::erase(ll id)
-	{
-		auto iter = parent.find(id);
-		if (iter != parent.end()) {
-			parent.erase(iter);
-			size.erase(id);
+			++cnt;
 			return true;
 		}
 		return false;
@@ -58,7 +54,7 @@ namespace DisjointSet
 			if (size_a < size_b) swap(a, b); // force size[a] >= size[b]
 			parent[b] = parent[a];
 			size[a] = size_a + size_b;
-			erase(b);
+			--cnt;
 			return true;
 		}
 		return false;
