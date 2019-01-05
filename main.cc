@@ -46,21 +46,23 @@ void draw_hexgrid(Game& game)
 {
     assert(hex_w >= 0 and hex_h >= 0);
     // TODO: implement multiple layers
-    for (int i = -1; i * hex_w <= WIDTH; ++i) {
-        for (int j = -1; j * hex_h <= HEIGHT; ++j) {
-            if (game.is_outside(Hex(0, i, j)) or game.grid[i][j][0].piece == Piece::NoPiece) {
-                draw_hex(hexgrid_tex, i, j);
-            }
-            else {
-                const Hex& h = game.grid[i][j][0];
-                SDL_Texture* texture = pieces_tex[int(h.color)][int(h.piece)];
-                if (h == selected_hex) {
-                    SDL_SetTextureAlphaMod(texture, 75);
+    for (int layer = 0; layer < 2; ++layer) {
+        for (int i = -1; i * hex_w <= WIDTH; ++i) {
+            for (int j = -1; j * hex_h <= HEIGHT; ++j) {
+                if (game.is_outside(Hex(layer, i, j)) or game.grid[i][j][layer].piece == Piece::NoPiece) {
+                    if (layer == 0) draw_hex(hexgrid_tex, i, j);
                 }
-                draw_hex(texture, i, j);
-                if (h == selected_hex) {
-                    // Restore
-                    SDL_SetTextureAlphaMod(texture, 255);
+                else {
+                    const Hex& h = game.grid[i][j][layer];
+                    SDL_Texture* texture = pieces_tex[h.color][h.piece];
+                    if (h == selected_hex) {
+                        SDL_SetTextureAlphaMod(texture, 75);
+                    }
+                    draw_hex(texture, i, j);
+                    if (h == selected_hex) {
+                        // Restore
+                        SDL_SetTextureAlphaMod(texture, 255);
+                    }
                 }
             }
         }
@@ -84,10 +86,13 @@ bool select_piece(Game& game, int x, int y, Color player_color)
         return true;
     }
     else {
-        Hex h = game.grid[x][y][0];
-        if (h.color == player_color) {
-            selected_hex = h;
-            return true;
+        for (int layer = 1; layer >= 0; --layer) {
+            Hex h = game.grid[x][y][layer];
+            D(h) << endl;
+            if (h.color == player_color) {
+                selected_hex = h;
+                return true;
+            }
         }
     }
     return false;
@@ -150,6 +155,9 @@ int main(int argc, char *argv[])
                         }
                         else {
                             valid = game.move_piece(x, y, selected_hex);
+                            if (selected_hex.piece == Piece::Beetle and not valid) {
+                                valid = game.move_piece(x, y, selected_hex, 1);
+                            }
                             if (valid) {
                                 selected_hex = Hex();
                             }
