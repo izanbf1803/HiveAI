@@ -30,7 +30,7 @@ namespace Hive
 			vector<Hex> get_neighbours(Hex h, bool all_layers = false);
 			HexGrid grid;
 		private:
-			void spawn(int x, int y, Color color, Piece piece);
+			void spawn(int x, int y, Color color, Piece piece, int layer = 0);
 			void destroy(Hex h);
 			vector<Hex> ant_valid_moves(Hex h);
 			vector<Hex> bee_valid_moves(Hex h);
@@ -175,14 +175,14 @@ namespace Hive
 
 		if (not is_valid) return false;
 
-		grid[x][y][layer] = h;
+		spawn(x, y, h.color, h.piece, h.layer);
 		destroy(_h);
 		return true;
 	}
 
-	void Game::spawn(int x, int y, Color color, Piece piece)
+	void Game::spawn(int x, int y, Color color, Piece piece, int layer)
 	{
-		grid[x][y][0] = Hex(0, color, x, y, piece);
+		grid[x][y][layer] = Hex(layer, color, x, y, piece);
 		if (piece == Piece::Bee) bee_spawned[color] = true;
 		--pieces_left[color][piece];
 		--total_pieces_left[color];
@@ -320,9 +320,39 @@ namespace Hive
 		return v;
 	}
 	
-	vector<Hex> Game::spider_valid_moves(Hex h)
+	vector<Hex> Game::spider_valid_moves(Hex h0)
 	{
-		return vector<Hex>(); // TODO: implement
+		destroy(h0); // Temporally delete piece
+
+		vector<Hex> v; // rechable hexs
+		if (count_components() == 1) {
+			for (Hex h_ : get_neighbours(h0)) { // Find BFS origin
+				if (grid[h_].piece == Piece::NoPiece and (has_neighbour_with_color(h_, Color::White) or has_neighbour_with_color(h_, Color::Black))) { 
+					queue<Hex> q;
+					vector<vector<int>> dist(GSIDE, vector<int>(GSIDE, INF));
+					q.push(h_);
+					dist[h0.x][h0.y] = 0;
+					dist[h_.x][h_.y] = 1;
+					while (not q.empty()) {
+						Hex h = q.front();
+						q.pop();
+						for (Hex p : get_neighbours(h)) {
+							if (not is_outside(p) and dist[p.x][p.y] == INF
+								and is_accessible(h, p) and grid[p].piece == Piece::NoPiece
+								and (has_neighbour_with_color(p, Color::White) or has_neighbour_with_color(p, Color::Black)))
+							{
+								dist[p.x][p.y] = dist[h.x][h.y] + 1;
+								if (dist[p.x][p.y] == 3) v.push_back(p);
+								if (dist[p.x][p.y] < 3) q.push(p);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		spawn(h0.x, h0.y, h0.color, h0.piece); // Restore piece
+		return v;
 	}
 
 	vector<Hex> Game::valid_moves(Hex p)
