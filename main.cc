@@ -1,6 +1,9 @@
 #include <SDL2/SDL.h>
 #include "Hive.h"
 #include "Constants.h"
+#include "AI.h"
+#include <stdlib.h>
+#include <time.h>
 #include <iostream>
 using namespace Hive;
 using namespace std;
@@ -100,6 +103,7 @@ bool select_piece(Game& game, int x, int y, Color player_color)
 
 int main(int argc, char *argv[])
 {
+    srand(time(0)); // required to work with random numbers
     SDL_Init(SDL_INIT_EVERYTHING);
 
     SDL_Window *window = SDL_CreateWindow("HiveAI", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);
@@ -111,14 +115,14 @@ int main(int argc, char *argv[])
         return 1;
     }
     
-    Game game(Piece::Ant);
-    for (int y = 0; y < GSIDE; ++y) {
-    	for (int x = 0; x < GSIDE; ++x) {
-    		cout << game.grid[x][y][0] << ' ';
-    	}
-    	cout << endl;
-    }
-    cout << endl << endl;
+    Game game(Piece::Spider);
+    // for (int y = 0; y < GSIDE; ++y) {
+    // 	for (int x = 0; x < GSIDE; ++x) {
+    // 		cout << game.grid[x][y][0] << ' ';
+    // 	}
+    // 	cout << endl;
+    // }
+    // cout << endl << endl;
 
     renderer = SDL_CreateRenderer(window, -1, 0);
     hexgrid_img = SDL_LoadBMP("img/hex/hexagon.bmp");
@@ -155,14 +159,20 @@ int main(int argc, char *argv[])
                         }
                         else {
                             valid = game.move_piece(x, y, selected_hex);
-                            if (selected_hex.piece == Piece::Beetle and not valid) {
+                            if (not valid and selected_hex.piece == Piece::Beetle) {
                                 valid = game.move_piece(x, y, selected_hex, 1);
                             }
+
                             if (valid) {
                                 selected_hex = Hex();
                             }
                         }
                         cout << "PUT_event " << valid << endl;
+                        if (valid) {
+                            cout << "IA turn:" << endl;
+                            AI::play(game);
+                            cout << "IA turn - END" << endl;
+                        }
                         break;
                     }
                     case SDL_BUTTON_RIGHT: {
@@ -182,7 +192,7 @@ int main(int argc, char *argv[])
 
                 // DEBUG:
                 if (c == 'd') {
-                    cout << "--> " << x << " " << y << endl;
+                    cout << "--> " << x << " " << y << " -  l0: " << game.grid[x][y][0] << "  " << "l1: " <<  game.grid[x][y][1] << endl;
                 }
             }
             // else if (SDL_KEYDOWN == event.type) {

@@ -2,8 +2,6 @@
 #define HIVE_HEX_H
 
 #include "Constants.h"
-#include <iostream>
-#include <cassert>
 
 namespace Hive 
 {

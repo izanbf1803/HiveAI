@@ -3,15 +3,15 @@
 
 #include "HexGrid.h"
 #include "DisjointSet.h"
-#include <vector>
-#include <array>
 #include <queue>
+#include <algorithm>
 
 namespace Hive
 {
 	using std::array;
 	using std::vector;
 	using std::queue;
+	using std::find;
 	using DisjointSet::DisjointSet;
 
 	class Game 
@@ -24,14 +24,17 @@ namespace Hive
 			bool is_outside(Hex p); 
 			bool is_accessible(Hex p, Hex p2);
 			bool has_neighbour_with_color(Hex p, Color color);
-			bool put_piece(int x, int y, Color color, Piece piece);
-			bool move_piece(int x, int y, Hex h, int layer = 0);
-			vector<Hex> get_hexs_with_color(Color color);
-			vector<Hex> get_neighbours(Hex h, bool all_layers = false);
-			HexGrid grid;
-		private:
+			bool put_piece(int x, int y, Color color, Piece piece, bool validated = false);
+			bool move_piece(int x, int y, Hex h, int layer = 0, bool validated = false);
 			void spawn(int x, int y, Color color, Piece piece, int layer = 0);
 			void destroy(Hex h);
+			Color winner();
+			int surrounding_cnt(Hex h);
+			vector<Hex> get_hexs_with_color(Color color);
+			vector<Hex> get_neighbours(Hex h, bool all_layers = false);
+			array<array<vector<Hex>,NPIECETYPES>,2> positions; // color, position, index
+			HexGrid grid;
+		private:
 			vector<Hex> ant_valid_moves(Hex h);
 			vector<Hex> bee_valid_moves(Hex h);
 			vector<Hex> beetle_valid_moves(Hex h);
@@ -78,7 +81,7 @@ namespace Hive
 			pieces_left[color][Piece::Spider] = 2;
 			total_pieces_left[color] = NPIECERPERPLAYER;
 		}
-		spawn(initial_pos[ia_color].x, initial_pos[ia_color].y, ia_color, Piece::Ant); // TODO: IA
+		spawn(initial_pos[ia_color].x, initial_pos[ia_color].y, ia_color, Piece::Spider); // TODO: IA
 		spawn(initial_pos[player_color].x, initial_pos[player_color].y, player_color, player_first_piece);
 	}
 
@@ -126,10 +129,10 @@ namespace Hive
  		return false;
 	}
 
-	bool Game::put_piece(int x, int y, Color color, Piece piece)
+	bool Game::put_piece(int x, int y, Color color, Piece piece, bool validated)
 	{
-		if (x < 0 or y < 0 or x >= GSIDE or y >= GSIDE) return false;
 		if (pieces_left[color][piece] == 0) return false;
+		if (is_outside(Hex(0, x, y))) return false;
 		if (piece != Piece::Bee and not bee_spawned[color]
 			and NPIECERPERPLAYER - total_pieces_left[color] >= 3) 
 		{
@@ -138,68 +141,75 @@ namespace Hive
 		
 		Hex h = Hex(0, color, x, y, piece);
 
-		bool is_valid = false;
-		for (Hex pos : valid_spawns(color)) {
-			if (pos.x == h.x and pos.y == h.y) {
-				is_valid = true;
-				break;
+		if (not validated) {
+			bool is_valid = false;
+			for (Hex pos : valid_spawns(color)) {
+				if (pos.x == h.x and pos.y == h.y) {
+					is_valid = true;
+					break;
+				}
 			}
-		}
 
-		if (not is_valid) return false;
+			if (not is_valid) return false;
+		}
 
 		spawn(x, y, color, piece);
 		return true;
 	}
 
-	bool Game::move_piece(int x, int y, Hex _h, int layer)
+	bool Game::move_piece(int x, int y, Hex _h, int layer, bool validated)
 	{
-		if (x < 0 or y < 0 or x >= GSIDE or y >= GSIDE) return false;
-
+		if (is_outside(Hex(layer, x, y))) return false;
 		if (is_locked(_h)) return false;
-
 		if (grid[x][y][layer].piece != Piece::NoPiece) return false;
 
-		vector<Hex> vm = valid_moves(_h);
-		D(vm.size()) << std::endl;
-		
 		Hex h = Hex(layer, _h.color, x, y, _h.piece);
 
-		bool is_valid = false;
-		for (Hex pos : vm) {
-			if (pos.x == h.x and pos.y == h.y) {
-				is_valid = true;
-				break;
+		if (not validated) {
+			vector<Hex> vm = valid_moves(_h);
+
+			bool is_valid = false;
+			for (Hex pos : vm) {
+				if (pos.x == h.x and pos.y == h.y) {
+					is_valid = true;
+					break;
+				}
 			}
+
+			if (not is_valid) return false;
 		}
 
-		if (not is_valid) return false;
-
+		destroy(_h); // always destroy first to avoid piece tracking errors
 		spawn(x, y, h.color, h.piece, h.layer);
-		destroy(_h);
 		return true;
 	}
 
 	void Game::spawn(int x, int y, Color color, Piece piece, int layer)
 	{
+		assert(not is_outside(Hex(layer,x,y)) and piece != Piece::NoPiece and color != Color::NoColor);
 		grid[x][y][layer] = Hex(layer, color, x, y, piece);
 		if (piece == Piece::Bee) bee_spawned[color] = true;
+		assert(pieces_left[color][piece] >= 0);
 		--pieces_left[color][piece];
 		--total_pieces_left[color];
+		positions[color][piece].push_back(grid[x][y][layer]);
 	}
 
 	void Game::destroy(Hex h)
 	{
+		assert(not is_outside(h));
 		h = grid[h];
+		assert(h.piece != -1);
 		grid[h] = Hex(h.layer, h.x, h.y);
 		if (h.piece == Piece::Bee) bee_spawned[h.color] = false;
 		++pieces_left[h.color][h.piece];
 		++total_pieces_left[h.color];
+		positions[h.color][h.piece].erase(find(positions[h.color][h.piece].begin(), positions[h.color][h.piece].end(), h));
 	}
 
 	vector<Hex> Game::valid_spawns(Color color)
 	{
-		assert(color == 0 or color == 1);
+		assert(color != Color::NoColor);
 
 		vector<Hex> vs; // valid spawns
 		vector<vector<bool>> visited(GSIDE, vector<bool>(GSIDE, false));
@@ -225,6 +235,32 @@ namespace Hive
 			}
 		}
 		return vs;
+	}
+
+	vector<Hex> Game::valid_moves(Hex p)
+	{
+		assert(p.piece != Piece::NoPiece);
+		assert(p.color != Color::NoColor);
+
+		if (is_locked(p) or not bee_spawned[p.color]) {
+			return vector<Hex>();
+		}
+
+		switch(p.piece) {
+			case Ant:
+				return ant_valid_moves(p);
+			case Bee:
+				return bee_valid_moves(p);
+			case Beetle:
+				return beetle_valid_moves(p);
+			case Grasshopper: 
+				return grasshopper_valid_moves(p);
+			case Spider:
+				return spider_valid_moves(p);
+		}
+
+		assert(false);
+		return vector<Hex>(); // Fatal error
 	}
 
 	vector<Hex> Game::ant_valid_moves(Hex h0)
@@ -304,14 +340,16 @@ namespace Hive
 		destroy(h0); // Temporally delete piece
 
 		vector<Hex> v; // rechable hexs
-		for (int dir_idx = 0; dir_idx < 6; ++dir_idx) {
-			Hex p = h0 + dirs[h0.x%2][dir_idx];
-			if (not is_outside(p) and grid[p].piece != Piece::NoPiece) {
-				while (not is_outside(p) and grid[p].piece != Piece::NoPiece) {
-					p = p + dirs[p.x%2][dir_idx];
-				}
-				if (not is_outside(p) and grid[p].piece == Piece::NoPiece) {
-					v.push_back(p);
+		if (count_components() == 1) {
+			for (int dir_idx = 0; dir_idx < 6; ++dir_idx) {
+				Hex p = h0 + dirs[h0.x%2][dir_idx];
+				if (not is_outside(p) and grid[p].piece != Piece::NoPiece) {
+					while (not is_outside(p) and grid[p].piece != Piece::NoPiece) {
+						p = p + dirs[p.x%2][dir_idx];
+					}
+					if (not is_outside(p) and grid[p].piece == Piece::NoPiece) {
+						v.push_back(p);
+					}
 				}
 			}
 		}
@@ -353,32 +391,6 @@ namespace Hive
 
 		spawn(h0.x, h0.y, h0.color, h0.piece); // Restore piece
 		return v;
-	}
-
-	vector<Hex> Game::valid_moves(Hex p)
-	{
-		assert(p.piece != Piece::NoPiece);
-		assert(p.color != Color::NoColor);
-
-		if (is_locked(p) or (not bee_spawned[p.color] and p.piece != Piece::Bee)) {
-			return vector<Hex>();
-		}
-
-		switch(p.piece) {
-			case Ant:
-				return ant_valid_moves(p);
-			case Bee:
-				return bee_valid_moves(p);
-			case Beetle:
-				return beetle_valid_moves(p);
-			case Grasshopper: 
-				return grasshopper_valid_moves(p);
-			case Spider:
-				return spider_valid_moves(p);
-		}
-
-		assert(false);
-		return vector<Hex>(); // Fatal error
 	}
 
 	vector<Hex> Game::get_hexs_with_color(Color color)
@@ -433,6 +445,25 @@ namespace Hive
 			}
 		}
 		return ds.count();
+	}
+	
+	Color Game::winner()
+	{
+		for (Color color : {Color::Black, Color::White}) {
+			if (not positions[color][Piece::Bee].empty() and surrounding_cnt(positions[color][Piece::Bee][0]) == 6) {
+				return (Color)!int(color); // enemy color
+			}
+		}
+		return Color::NoColor;
+	}
+
+	int Game::surrounding_cnt(Hex h)
+	{
+		int cnt = 0;
+		for (Hex p : get_neighbours(h)) {
+			if (p.piece != Piece::NoPiece) ++cnt;
+		}
+		return cnt;
 	}
 
 }

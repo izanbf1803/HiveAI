@@ -2,7 +2,6 @@
 #define HIVE_HEXGRID_H
 
 #include "Hex.h"
-#include <array>
 
 namespace Hive 
 {
