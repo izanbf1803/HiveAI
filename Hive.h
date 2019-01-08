@@ -33,6 +33,8 @@ namespace Hive
 			vector<Hex> get_hexs_with_color(Color color);
 			vector<Hex> get_neighbours(Hex h, bool all_layers = false);
 			array<array<vector<Hex>,NPIECETYPES>,2> positions; // color, position, index
+			array<array<int,NPIECETYPES>,2> pieces_left;
+			array<int,2> total_pieces_left;
 			HexGrid grid;
 		private:
 			vector<Hex> ant_valid_moves(Hex h);
@@ -42,8 +44,6 @@ namespace Hive
 			vector<Hex> spider_valid_moves(Hex h);
 			int count_components();
 			array<bool,2> bee_spawned;
-			array<array<int,NPIECETYPES>,2> pieces_left;
-			array<int,2> total_pieces_left;
 			const array<Hex,2> initial_pos = {{
 				Hex(0, GSIDE/2, GSIDE/2-1), // Black
 				Hex(0, GSIDE/2, GSIDE/2), // White
@@ -331,7 +331,7 @@ namespace Hive
 			}
 		}
 
-		spawn(h0.x, h0.y, h0.color, h0.piece); // Restore piece
+		spawn(h0.x, h0.y, h0.color, h0.piece, h0.layer); // Restore piece
 		return v;
 	}
 	

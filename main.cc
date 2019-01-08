@@ -82,17 +82,17 @@ void draw_piece(int piece)
     SDL_RenderCopy(renderer, tex, NULL, &dstrect);
 }
 
-bool select_piece(Game& game, int x, int y, Color player_color)
+bool select_piece(Game& game, int x, int y)
 {
-    if (selected_hex.color == player_color) {
+    if (selected_hex.piece != Piece::NoPiece) {
         selected_hex = Hex();
         return true;
     }
     else {
         for (int layer = 1; layer >= 0; --layer) {
             Hex h = game.grid[x][y][layer];
-            D(h) << endl;
-            if (h.color == player_color) {
+            // if (h.color == player_color) {
+            if (h.piece != Piece::NoPiece) {
                 selected_hex = h;
                 return true;
             }
@@ -158,9 +158,13 @@ int main(int argc, char *argv[])
                             valid = game.put_piece(x, y, player_color, (Piece)selected_piece);
                         }
                         else {
-                            valid = game.move_piece(x, y, selected_hex);
-                            if (not valid and selected_hex.piece == Piece::Beetle) {
-                                valid = game.move_piece(x, y, selected_hex, 1);
+                            // int layer = (selected_hex.piece == Piece::Beetle and game.grid[x][y][0].piece != Piece::NoPiece ? 1 : 0);
+                            // valid = game.move_piece(x, y, selected_hex, layer);
+                            if (selected_hex.color == player_color) {
+                                valid = game.move_piece(x, y, selected_hex);
+                                if (not valid and selected_hex.piece == Piece::Beetle) {
+                                    valid = game.move_piece(x, y, selected_hex, 1);
+                                }
                             }
 
                             if (valid) {
@@ -176,7 +180,7 @@ int main(int argc, char *argv[])
                         break;
                     }
                     case SDL_BUTTON_RIGHT: {
-                        bool valid = select_piece(game, x, y, player_color);
+                        bool valid = select_piece(game, x, y);
                         cout << "PICK_event " << valid << endl;
                         break;
                     }
@@ -208,7 +212,7 @@ int main(int argc, char *argv[])
         
         draw_hexgrid(game);
         if (selected_hex.color == Color::NoColor) {
-            draw_piece(selected_piece);
+            if (game.pieces_left[player_color][selected_piece] > 0) draw_piece(selected_piece);
         }
         else {
             draw_piece(selected_hex.piece);
@@ -216,9 +220,10 @@ int main(int argc, char *argv[])
 
         // DEBUG:
         for (Color c : {Color::Black, Color::White}) {
-            for (Hex h : ((selected_hex.piece == Piece::NoPiece or c != player_color) 
-                    ? game.valid_spawns(c) : game.valid_moves(game.grid[selected_hex])))
-            {
+            vector<Hex> locations;
+            if (selected_hex.piece == Piece::NoPiece) locations = game.valid_spawns(c);
+            if (selected_hex.piece != Piece::NoPiece and selected_hex.color == c) locations = game.valid_moves(game.grid[selected_hex]);
+            for (Hex h : locations) {
                 int sx = h.x * hex_w;
                 int sy = h.y * hex_h - (h.x&1 ? hexgrid_img->h/2 : 0);
                 SDL_SetRenderDrawColor(
