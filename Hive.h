@@ -24,6 +24,7 @@ namespace Hive
 			bool is_outside(Hex p); 
 			bool is_accessible(Hex p, Hex p2);
 			bool has_neighbour_with_color(Hex p, Color color);
+			bool has_neighbour(Hex p);
 			bool put_piece(int x, int y, Color color, Piece piece, bool validated = false);
 			bool move_piece(int x, int y, Hex h, int layer = 0, bool validated = false);
 			void spawn(int x, int y, Color color, Piece piece, int layer = 0);
@@ -127,6 +128,14 @@ namespace Hive
 			}
  		}
  		return false;
+	}
+
+	bool Game::has_neighbour(Hex p)
+	{
+		for (Hex h : get_neighbours(p)) {
+			if (grid[h].piece != Piece::NoPiece) return true;
+		}
+		return false;
 	}
 
 	bool Game::put_piece(int x, int y, Color color, Piece piece, bool validated)
@@ -283,7 +292,7 @@ namespace Hive
 				for (Hex p : get_neighbours(h)) {
 					if (not is_outside(p) and not visited[p.x][p.y]
 						and is_accessible(h, p) and grid[p].piece == Piece::NoPiece
-						and (has_neighbour_with_color(p, Color::White) or has_neighbour_with_color(p, Color::Black)))
+						and has_neighbour(p))
 					{
 						visited[p.x][p.y] = true;
 						v.push_back(p);
@@ -305,7 +314,7 @@ namespace Hive
 		if (count_components() == 1) {
 			for (Hex p : get_neighbours(h0)) {
 				if (grid[p].piece == Piece::NoPiece and is_accessible(h0, p)
-					and (has_neighbour_with_color(p, Color::White) or has_neighbour_with_color(p, Color::Black))) 
+					and has_neighbour(p)) 
 				{
 					v.push_back(p);
 				}
@@ -324,7 +333,7 @@ namespace Hive
 		if (count_components() == 1) {
 			for (Hex p : get_neighbours(h0, true)) {
 				if (grid[p].piece == Piece::NoPiece and is_accessible(h0, p)
-					and (has_neighbour_with_color(p, Color::White) or has_neighbour_with_color(p, Color::Black))) 
+					and has_neighbour(p)) 
 				{
 					v.push_back(p);
 				}
@@ -365,9 +374,9 @@ namespace Hive
 		vector<Hex> v; // rechable hexs
 		if (count_components() == 1) {
 			for (Hex h_ : get_neighbours(h0)) { // Find BFS origin
-				if (grid[h_].piece == Piece::NoPiece and (has_neighbour_with_color(h_, Color::White) or has_neighbour_with_color(h_, Color::Black))) { 
+				if (grid[h_].piece == Piece::NoPiece and has_neighbour(h_)) { 
 					queue<Hex> q;
-					vector<vector<int>> dist(GSIDE, vector<int>(GSIDE, INF));
+					vector<vector<int>> dist(GSIDE, vector<int>(GSIDE, IINF));
 					q.push(h_);
 					dist[h0.x][h0.y] = 0;
 					dist[h_.x][h_.y] = 1;
@@ -375,9 +384,9 @@ namespace Hive
 						Hex h = q.front();
 						q.pop();
 						for (Hex p : get_neighbours(h)) {
-							if (not is_outside(p) and dist[p.x][p.y] == INF
+							if (not is_outside(p) and dist[p.x][p.y] == IINF
 								and is_accessible(h, p) and grid[p].piece == Piece::NoPiece
-								and (has_neighbour_with_color(p, Color::White) or has_neighbour_with_color(p, Color::Black)))
+								and has_neighbour(p))
 							{
 								dist[p.x][p.y] = dist[h.x][h.y] + 1;
 								if (dist[p.x][p.y] == 3) v.push_back(p);
@@ -408,7 +417,6 @@ namespace Hive
 
 	vector<Hex> Game::get_neighbours(Hex p, bool all_layers)
 	{
-		// TODO: implement multiple layers
 		vector<Hex> v;
 		for (const Hex& dir : dirs[p.x%2]) {
 			Hex h_ = p + dir;
@@ -425,7 +433,6 @@ namespace Hive
 
 	int Game::count_components()
 	{
-		// TODO: implement multiple layers
 		DisjointSet ds;
 		for (int y = 0; y < GSIDE; ++y) {
     		for (int x = 0; x < GSIDE; ++x) {
@@ -451,7 +458,7 @@ namespace Hive
 	{
 		for (Color color : {Color::Black, Color::White}) {
 			if (not positions[color][Piece::Bee].empty() and surrounding_cnt(positions[color][Piece::Bee][0]) == 6) {
-				return (Color)!int(color); // enemy color
+				return (Color)!color; // enemy color
 			}
 		}
 		return Color::NoColor;
