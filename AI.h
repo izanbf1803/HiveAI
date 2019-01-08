@@ -3,12 +3,16 @@
 
 #include "Hive.h"
 #include <cmath>
+#include <ctime>
 
 namespace AI
 {
 	typedef long double ld; // easier to type
 	using std::endl; // DEBUG
 	using std::array;
+	using std::max;
+	using std::min;
+	using std::abs;
 	template <typename T> using V = std::vector<T>; // easier to type
 	using namespace Hive;
 
@@ -21,6 +25,8 @@ namespace AI
 		Piece piece; // PlayType == Put
 		Hex h2; 	 // PlayType == Move
 	};
+
+	clock_t start;
 
 	std::ostream& operator<<(std::ostream& os, const PlayInfo& p)
     {  
@@ -38,11 +44,34 @@ namespace AI
         return os;  
     }
 
+	bool operator==(const PlayInfo& a, const PlayInfo& b)
+	{
+		if (abs(a.score - b.score) < EPS) return true;
+		return false;
+	}
+
 	bool operator<(const PlayInfo& a, const PlayInfo& b)
+	{
+		if (a.score - b.score < -EPS) return true;
+		return false;
+	}
+
+	bool operator>(const PlayInfo& a, const PlayInfo& b)
 	{
 		if (a.score - b.score > EPS) return true;
 		return false;
 	}
+
+	inline int delta_time()
+	{
+		return (clock() - start) * 1000 / CLOCKS_PER_SEC;
+	}
+
+	inline void reset_clock()
+	{
+		start = clock();
+	}
+
 
 	PlayInfo play_info_put(ld score, Hex h, Piece piece)
 	{
@@ -69,88 +98,144 @@ namespace AI
 		return m + rand() % (M - m + 1);
 	}
 
-	ld get_heuristic_score(Game& game, int depth, Color color)
+	ld get_heuristic_score_for_color(Game& game, Color color)
 	{
-		int cnt[2] = {0, 0};
-		for (Color color : {Color::Black, Color::White}) {
-			if (not game.positions[color][Piece::Bee].empty()) {
-				cnt[color] = game.surrounding_cnt(game.positions[color][Piece::Bee][0]);
-			}
+		ld score = 0;
+
+		score += pow(10.0L, 6) * game.bee_spawned[color];
+
+		if (game.bee_spawned[color]) {
+			int surrounding_cnt = game.surrounding_cnt(game.positions[color][Piece::Bee][0]);
+			score -= pow(10.0L, 3) * (surrounding_cnt - 1);
 		}
+
 		int pieces_val = 0;
 		for (Piece piece : PIECES) {
 			pieces_val += PIECEVAL[piece] * game.positions[color][piece].size();
 		}
+		score += pow(10.0L, 0) * pieces_val;
 
-		return (cnt[!int(color)] - cnt[color]) * pow(10.0L, 5) + pieces_val;
+		return score;
 	}
 
-	PlayInfo find_best_play(Game& game, Color color, int depth)
+	ld get_heuristic_score(Game& game)
 	{
-		PlayInfo best;
+		ld score = get_heuristic_score_for_color(game, ia_color) - get_heuristic_score_for_color(game, player_color);
+		// D(score) << endl;
+		return score;
+	}
+
+	PlayInfo minimax(Game& game, Color color, int depth, ld alpha, ld beta)
+	{
+		assert(depth <= MAXDEPTH);
+
+		PlayInfo best_play;
+		best_play.type = PlayType::NoPlay;
+		best_play.score = (color == ia_color ? -INF : INF);
+
 		Color winner = game.winner();
-		D(winner) << endl;
-		if (winner == Color::NoColor) {
-			V<PlayInfo> plays;
-			V<Hex> vspawns = game.valid_spawns(color);
-			for (Piece piece : PIECES) {
-				for (Hex p : vspawns) {
-					if (game.put_piece(p.x, p.y, color, piece, true)) {
-						ld score = get_heuristic_score(game, depth, color);
-						plays.push_back(play_info_put(score, p, piece));
-						// Restore:
+		// D(winner) << endl;
+		if (winner != Color::NoColor) {
+			best_play.score = (color == ia_color ? INF : -INF);
+			return best_play;
+		}
+
+		V<Hex> vspawns = game.valid_spawns(color);
+		random_shuffle(vspawns.begin(), vspawns.end());
+		for (Piece piece : PIECES) {
+			for (Hex p : vspawns) {
+				if (game.put_piece(p.x, p.y, color, piece, true)) {
+					auto lambda_restore = [&](){
 						game.destroy(Hex(0, p.x, p.y));
+					};
+					PlayInfo play = play_info_put(0, p, piece);
+					
+					if (depth == MAXDEPTH or (depth == MAXDEPTH-1 and delta_time() > 4000)) {
+						play.score = get_heuristic_score(game);
 					}
+					else {
+						play.score = minimax(game, (Color)!color, depth+1, alpha, beta).score;
+					}
+					// D(play.score) << endl;
+
+					// !!! MINIMAX START !!!
+					if (color == ia_color) { // maximize
+						if (play > best_play) best_play = play;
+						alpha = max(alpha, best_play.score);
+					}
+					else { // minimize
+						if (play < best_play) best_play = play;
+						beta = min(beta, best_play.score);
+					}
+
+					if (beta <= alpha) {
+						lambda_restore();
+						return best_play;
+					}
+					// !!! MINIMAX END !!!
+
+					lambda_restore();
 				}
 			}
-			for (int layer = 0; layer < 2; ++layer) {
-				for (int y = 0; y < GSIDE; ++y) {
-					for (int x = 0; x < GSIDE; ++x) {
-						Hex h = game.grid[x][y][layer];
-						if (h.color == color) {
-							V<Hex> vmoves = game.valid_moves(h);
-							// D(h), D(h.piece), D(vmoves.size()) << endl;
-							for (Hex p : vmoves) {
-								if (game.move_piece(p.x, p.y, h, p.layer, true)) {
-									ld score = get_heuristic_score(game, depth, color);
-									plays.push_back(play_info_move(score, h, p));
-									// Restore:
+		}
+
+		for (int layer = 0; layer < 2; ++layer) {
+			for (int y = 0; y < GSIDE; ++y) {
+				for (int x = 0; x < GSIDE; ++x) {
+					Hex h = game.grid[x][y][layer];
+					if (h.color == color) {
+						V<Hex> vmoves = game.valid_moves(h);
+						random_shuffle(vmoves.begin(), vmoves.end());
+						// D(h), D(h.piece), D(vmoves.size()) << endl;
+						for (Hex p : vmoves) {
+							if (game.move_piece(p.x, p.y, h, p.layer, true)) {
+								auto lambda_restore = [&]() {
 									game.destroy(p); // always destroy first to avoid piece tracking errors
 									game.spawn(h.x, h.y, h.color, h.piece, h.layer);
+								};
+								PlayInfo play = play_info_move(0, h, p);
+
+								if (depth == MAXDEPTH or (depth == MAXDEPTH-1 and delta_time() > 4000)) {
+									play.score = get_heuristic_score(game);
 								}
-								// else {
-								// 	D(h), D(p) << endl;
-								// }
+								else {
+									play.score = minimax(game, (Color)!color, depth+1, alpha, beta).score;
+								}
+								// D(play.score) << endl;
+
+								// !!! MINIMAX START !!!
+								if (color == ia_color) { // maximize
+									if (play > best_play) best_play = play;
+									alpha = max(alpha, best_play.score);
+								}
+								else { // minimize
+									if (play < best_play) best_play = play;
+									beta = min(beta, best_play.score);
+								}
+
+								if (beta <= alpha) {
+									lambda_restore();
+									return best_play;
+								}
+								// !!! MINIMAX END !!!
+
+								lambda_restore();
 							}
 						}
 					}
 				}
 			}
+		}
 
-			if (plays.empty()) {
-				best.type = PlayType::NoPlay;
-				best.score = 0;
-			}
-			else {
-				best = plays[0];
-				for (int i = 1; i < plays.size(); ++i) {
-					if (plays[i] < best) best = plays[i];
-				}
-			}
-		}
-		else {
-			best.type = PlayType::NoPlay;
-			best.score = INF * (winner == color ? 1 : -1);
-		}
-		// for (PlayInfo play : plays) D(play) << endl;
-		// D(best) << endl;
-		return best;
+		return best_play;
 	}
 
 	void play(Game& game)
 	{
-		PlayInfo play = find_best_play(game, ia_color, 0);
+		reset_clock();
+		PlayInfo play = minimax(game, ia_color, 1, -INF, INF);
 		D(play) << endl;
+		D(delta_time()) << endl;
 		if (play.type == PlayType::Put) {
 			game.put_piece(play.h.x, play.h.y, ia_color, play.piece);
 		}

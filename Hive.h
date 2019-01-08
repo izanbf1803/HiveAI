@@ -5,6 +5,7 @@
 #include "DisjointSet.h"
 #include <queue>
 #include <algorithm>
+#include <cstring>
 
 namespace Hive
 {
@@ -12,6 +13,8 @@ namespace Hive
 	using std::vector;
 	using std::queue;
 	using std::find;
+	using std::max;
+	using std::min;
 	using DisjointSet::DisjointSet;
 
 	class Game 
@@ -31,11 +34,12 @@ namespace Hive
 			void destroy(Hex h);
 			Color winner();
 			int surrounding_cnt(Hex h);
-			vector<Hex> get_hexs_with_color(Color color);
+			Hex get_hex_with_color(Color color);
 			vector<Hex> get_neighbours(Hex h, bool all_layers = false);
 			array<array<vector<Hex>,NPIECETYPES>,2> positions; // color, position, index
 			array<array<int,NPIECETYPES>,2> pieces_left;
 			array<int,2> total_pieces_left;
+			array<bool,2> bee_spawned;
 			HexGrid grid;
 		private:
 			vector<Hex> ant_valid_moves(Hex h);
@@ -44,7 +48,6 @@ namespace Hive
 			vector<Hex> grasshopper_valid_moves(Hex h);
 			vector<Hex> spider_valid_moves(Hex h);
 			int count_components();
-			array<bool,2> bee_spawned;
 			const array<Hex,2> initial_pos = {{
 				Hex(0, GSIDE/2, GSIDE/2-1), // Black
 				Hex(0, GSIDE/2, GSIDE/2), // White
@@ -218,12 +221,14 @@ namespace Hive
 
 	vector<Hex> Game::valid_spawns(Color color)
 	{
+		static bool visited[GSIDE][GSIDE];
+
 		assert(color != Color::NoColor);
 
 		vector<Hex> vs; // valid spawns
-		vector<vector<bool>> visited(GSIDE, vector<bool>(GSIDE, false));
+		memset(visited, 0, sizeof(visited));
 		queue<Hex> q;
-		q.push(get_hexs_with_color(color)[0]);
+		q.push(get_hex_with_color(color));
 		while (not q.empty()) {
 			Hex h = q.front();
 			q.pop();
@@ -274,11 +279,13 @@ namespace Hive
 
 	vector<Hex> Game::ant_valid_moves(Hex h0)
 	{
+		static bool visited[GSIDE][GSIDE];
+
 		destroy(h0); // Temporally delete piece
 
 		vector<Hex> v; // rechable hexs
 		if (count_components() == 1) {
-			vector<vector<bool>> visited(GSIDE, vector<bool>(GSIDE, false));
+			memset(visited, 0, sizeof(visited));
 			queue<Hex> q;
 			for (Hex h_ : get_neighbours(h0)) { // Find BFS origin
 				if (grid[h_].piece != Piece::NoPiece) { 
@@ -369,6 +376,8 @@ namespace Hive
 	
 	vector<Hex> Game::spider_valid_moves(Hex h0)
 	{
+		static int dist[GSIDE][GSIDE];
+
 		destroy(h0); // Temporally delete piece
 
 		vector<Hex> v; // rechable hexs
@@ -376,7 +385,11 @@ namespace Hive
 			for (Hex h_ : get_neighbours(h0)) { // Find BFS origin
 				if (grid[h_].piece == Piece::NoPiece and has_neighbour(h_)) { 
 					queue<Hex> q;
-					vector<vector<int>> dist(GSIDE, vector<int>(GSIDE, IINF));
+					for (int y = max(h0.y - 3, 0); y <= min(h0.y + 3, GSIDE-1); ++y) { // initialize rechable points dist
+						for (int x = max(h0.x - 3, 0); x <= min(h0.x + 3, GSIDE-1); ++x) {
+							dist[x][y] = IINF;
+						}
+					}
 					q.push(h_);
 					dist[h0.x][h0.y] = 0;
 					dist[h_.x][h_.y] = 1;
@@ -402,17 +415,14 @@ namespace Hive
 		return v;
 	}
 
-	vector<Hex> Game::get_hexs_with_color(Color color)
+	Hex Game::get_hex_with_color(Color color)
 	{
-		vector<Hex> v;
-		for (int y = 0; y < GSIDE; ++y) {
-			for (int x = 0; x < GSIDE; ++x) {
-				if (grid[x][y][0].color == color) {
-					v.push_back(grid[x][y][0]);
-				}
+		for (Piece piece : PIECES) {
+			for (Hex h : positions[color][piece]) {
+				if (h.layer == 0) return h;
 			}
 		}
-		return v;
+		assert(false); // error
 	}
 
 	vector<Hex> Game::get_neighbours(Hex p, bool all_layers)
@@ -434,19 +444,25 @@ namespace Hive
 	int Game::count_components()
 	{
 		DisjointSet ds;
-		for (int y = 0; y < GSIDE; ++y) {
-    		for (int x = 0; x < GSIDE; ++x) {
-				Hex h = grid[x][y][0];
-				if (h.piece != Piece::NoPiece) ds.add(h.id());
+		for (Color color : COLORS) {
+			for (Piece piece : PIECES) {
+				for (Hex h : positions[color][piece]) {
+					if (h.layer == 0) {
+						if (h.piece != Piece::NoPiece) ds.add(h.id());
+					}
+				}
 			}
 		}
-		for (int y = 0; y < GSIDE; ++y) {
-    		for (int x = 0; x < GSIDE; ++x) {
-				Hex h = grid[x][y][0];
-				if (h.piece != Piece::NoPiece) {
-					for (Hex p : get_neighbours(h)) {
-						p = grid[p];
-						if (p.piece != Piece::NoPiece) ds.merge(h.id(), p.id());
+		for (Color color : COLORS) {
+			for (Piece piece : PIECES) {
+				for (Hex h : positions[color][piece]) {
+					if (h.layer == 0) {
+						if (h.piece != Piece::NoPiece) {
+							for (Hex p : get_neighbours(h)) {
+								p = grid[p];
+								if (p.piece != Piece::NoPiece) ds.merge(h.id(), p.id());
+							}
+						}
 					}
 				}
 			}
@@ -456,7 +472,7 @@ namespace Hive
 	
 	Color Game::winner()
 	{
-		for (Color color : {Color::Black, Color::White}) {
+		for (Color color : COLORS) {
 			if (not positions[color][Piece::Bee].empty() and surrounding_cnt(positions[color][Piece::Bee][0]) == 6) {
 				return (Color)!color; // enemy color
 			}
@@ -468,7 +484,7 @@ namespace Hive
 	{
 		int cnt = 0;
 		for (Hex p : get_neighbours(h)) {
-			if (p.piece != Piece::NoPiece) ++cnt;
+			if (grid[p].piece != Piece::NoPiece) ++cnt;
 		}
 		return cnt;
 	}

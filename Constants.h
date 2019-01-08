@@ -1,3 +1,8 @@
+#pragma GCC optimize("O3","unroll-loops","omit-frame-pointer","inline") // Optimization flags
+#pragma GCC option("arch=native","tune=native","no-zero-upper") // Enable AVX
+#pragma GCC target("avx")  //Enable AVX
+#include <x86intrin.h> // AVX/SSE Extensions
+
 #ifndef HIVE_CONSTANTS_H
 #define HIVE_CONSTANTS_H
 
@@ -23,8 +28,10 @@ namespace Hive
 	const int NPIECERPERPLAYER = 11;
 	const int NPIECES = 2*NPIECERPERPLAYER; // Number of pieces
 	const int GSIDE = 30; // Grid side size
+	const int MAXDEPTH = 4;
 	const Color player_color = Color::White;
 	const Color ia_color = Color::Black;
+	const std::array<Color,2> COLORS = {Color::Black, Color::White};
 	const std::array<Piece,NPIECETYPES> PIECES = { Ant, Bee, Beetle, Grasshopper, Spider };
 	const std::array<int,NPIECETYPES> PIECEVAL = { 6, 10, 4, 2, 2 };
 }
