@@ -2,7 +2,6 @@
 #define HIVE_HIVE_H
 
 #include "HexGrid.h"
-#include "DisjointSet.h"
 #include <queue>
 #include <algorithm>
 #include <cstring>
@@ -15,7 +14,6 @@ namespace Hive
 	using std::find;
 	using std::max;
 	using std::min;
-	using DisjointSet::DisjointSet;
 
 	class Game 
 	{
@@ -225,8 +223,8 @@ namespace Hive
 
 		assert(color != Color::NoColor);
 
-		vector<Hex> vs; // valid spawns
 		memset(visited, 0, sizeof(visited));
+		vector<Hex> vs; // valid spawns
 		queue<Hex> q;
 		q.push(get_hex_with_color(color));
 		while (not q.empty()) {
@@ -443,31 +441,40 @@ namespace Hive
 
 	int Game::count_components()
 	{
-		DisjointSet ds;
-		for (Color color : COLORS) {
-			for (Piece piece : PIECES) {
-				for (Hex h : positions[color][piece]) {
-					if (h.layer == 0) {
-						if (h.piece != Piece::NoPiece) ds.add(h.id());
-					}
+		static bool visited[GSIDE][GSIDE];
+
+		memset(visited, 0, sizeof(visited));
+		Hex h0 = get_hex_with_color(Color::White);
+		queue<Hex> q;
+		for (Hex h_ : get_neighbours(h0)) { // Find BFS origin
+			if (grid[h_].piece != Piece::NoPiece) { 
+				q.push(h_);
+				break;
+			}
+		}
+		while (not q.empty()) {
+			Hex h = q.front();
+			q.pop();
+			for (Hex p : get_neighbours(h)) {
+				if (not is_outside(p) and not visited[p.x][p.y]
+					and is_accessible(h, p) and grid[p].piece == Piece::NoPiece
+					and has_neighbour(p))
+				{
+					visited[p.x][p.y] = true;
+					q.push(p);
 				}
 			}
 		}
+
 		for (Color color : COLORS) {
 			for (Piece piece : PIECES) {
 				for (Hex h : positions[color][piece]) {
-					if (h.layer == 0) {
-						if (h.piece != Piece::NoPiece) {
-							for (Hex p : get_neighbours(h)) {
-								p = grid[p];
-								if (p.piece != Piece::NoPiece) ds.merge(h.id(), p.id());
-							}
-						}
-					}
+					if (not visited[h.x][h.y]) return 2; // optimization: only count 1 or 2 components
 				}
 			}
 		}
-		return ds.count();
+
+		return 1;
 	}
 	
 	Color Game::winner()
