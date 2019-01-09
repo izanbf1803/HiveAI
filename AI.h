@@ -7,7 +7,7 @@
 
 namespace AI
 {
-	typedef long double ld; // easier to type
+	typedef long long ll; // easier to type
 	using std::endl; // DEBUG
 	using std::array;
 	using std::max;
@@ -20,7 +20,7 @@ namespace AI
 
 	struct PlayInfo {
 		PlayType type;
-		ld score;
+		ll score;
 		Hex h;
 		Piece piece; // PlayType == Put
 		Hex h2; 	 // PlayType == Move
@@ -46,19 +46,19 @@ namespace AI
 
 	bool operator==(const PlayInfo& a, const PlayInfo& b)
 	{
-		if (abs(a.score - b.score) < EPS) return true;
+		if (a.score == b.score) return true;
 		return false;
 	}
 
 	bool operator<(const PlayInfo& a, const PlayInfo& b)
 	{
-		if (a.score - b.score < -EPS) return true;
+		if (a.score < b.score) return true;
 		return false;
 	}
 
 	bool operator>(const PlayInfo& a, const PlayInfo& b)
 	{
-		if (a.score - b.score > EPS) return true;
+		if (a.score > b.score) return true;
 		return false;
 	}
 
@@ -73,7 +73,7 @@ namespace AI
 	}
 
 
-	PlayInfo play_info_put(ld score, Hex h, Piece piece)
+	PlayInfo play_info_put(ll score, Hex h, Piece piece)
 	{
 		PlayInfo p;
 		p.type = PlayType::Put;
@@ -83,7 +83,7 @@ namespace AI
 		return p;
 	}
 
-	PlayInfo play_info_move(ld score, Hex h, Hex h2)
+	PlayInfo play_info_move(ll score, Hex h, Hex h2)
 	{
 		PlayInfo p;
 		p.type = PlayType::Move;
@@ -98,45 +98,45 @@ namespace AI
 		return m + rand() % (M - m + 1);
 	}
 
-	ld get_heuristic_score_for_color(Game& game, Color color)
+	ll get_heuristic_score_for_color(Game& game, Color color)
 	{
-		ld score = 0;
+		ll score = 0;
 
-		score += pow(10.0L, 6) * game.bee_spawned[color];
+		score += pow10[6] * game.bee_spawned[color];
 
 		if (game.bee_spawned[color]) {
 			int surrounding_cnt = game.surrounding_cnt(game.positions[color][Piece::Bee][0]);
-			score -= pow(10.0L, 3) * (surrounding_cnt - 1);
+			score -= pow10[3] * (surrounding_cnt - 1);
 		}
 
 		int pieces_val = 0;
 		for (Piece piece : PIECES) {
 			pieces_val += PIECEVAL[piece] * game.positions[color][piece].size();
 		}
-		score += pow(10.0L, 0) * pieces_val;
+		score += pow10[0] * pieces_val;
 
 		return score;
 	}
 
-	ld get_heuristic_score(Game& game)
+	ll get_heuristic_score(Game& game)
 	{
-		ld score = get_heuristic_score_for_color(game, ia_color) - get_heuristic_score_for_color(game, player_color);
+		ll score = get_heuristic_score_for_color(game, ia_color) - get_heuristic_score_for_color(game, player_color);
 		// D(score) << endl;
 		return score;
 	}
 
-	PlayInfo minimax(Game& game, Color color, int depth, ld alpha, ld beta)
+	PlayInfo minimax(Game& game, Color color, int depth, ll alpha, ll beta)
 	{
 		assert(depth <= MAXDEPTH);
 
 		PlayInfo best_play;
 		best_play.type = PlayType::NoPlay;
-		best_play.score = (color == ia_color ? -INF : INF);
+		best_play.score = (color == ia_color ? -LINF : LINF);
 
 		Color winner = game.winner();
 		// D(winner) << endl;
 		if (winner != Color::NoColor) {
-			best_play.score = (color == ia_color ? INF : -INF);
+			best_play.score = (color == ia_color ? LINF : -LINF);
 			return best_play;
 		}
 
@@ -233,7 +233,7 @@ namespace AI
 	void play(Game& game)
 	{
 		reset_clock();
-		PlayInfo play = minimax(game, ia_color, 1, -INF, INF);
+		PlayInfo play = minimax(game, ia_color, 1, -LINF, LINF);
 		D(play) << endl;
 		D(delta_time()) << endl;
 		if (play.type == PlayType::Put) {

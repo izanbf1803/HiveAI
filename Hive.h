@@ -444,7 +444,7 @@ namespace Hive
 		static bool visited[GSIDE][GSIDE];
 
 		memset(visited, 0, sizeof(visited));
-		Hex h0 = get_hex_with_color(Color::White);
+		Hex h0 = get_hex_with_color(player_color);
 		queue<Hex> q;
 		for (Hex h_ : get_neighbours(h0)) { // Find BFS origin
 			if (grid[h_].piece != Piece::NoPiece) { 
@@ -457,7 +457,7 @@ namespace Hive
 			q.pop();
 			for (Hex p : get_neighbours(h)) {
 				if (not is_outside(p) and not visited[p.x][p.y]
-					and is_accessible(h, p) and grid[p].piece == Piece::NoPiece
+					and is_accessible(h, p) and grid[p].piece != Piece::NoPiece
 					and has_neighbour(p))
 				{
 					visited[p.x][p.y] = true;
