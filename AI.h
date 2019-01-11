@@ -114,18 +114,20 @@ namespace AI
 	{
 		ll score = 0;
 
-		score += pow10[6] * game.bee_spawned[color];
-
 		if (game.bee_spawned[color]) {
 			int surrounding_cnt = game.surrounding_cnt(game.positions[color][Piece::Bee][0]);
-			score -= pow10[3] * (surrounding_cnt - 1);
+			score -= pow10[2] * (surrounding_cnt - 1);
 		}
 
-		int pieces_val = 0;
 		for (Piece piece : PIECES) {
-			pieces_val += PIECEVAL[piece] * game.positions[color][piece].size();
+			score += pow10[1] * PIECEVAL[piece] * game.positions[color][piece].size();
 		}
-		score += pow10[0] * pieces_val;
+
+		// for (Piece piece : PIECES) {
+		// 	for (Hex h : game.positions[color][piece]) {
+		// 		score += 
+		// 	}
+		// }
 
 		return score;
 	}

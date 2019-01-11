@@ -34,7 +34,7 @@ namespace Hive
 	const Color ia_color = Color::Black;
 	const std::array<Color,2> COLORS = {Color::Black, Color::White};
 	const std::array<Piece,NPIECETYPES> PIECES = { Ant, Bee, Beetle, Grasshopper, Spider };
-	const std::array<int,NPIECETYPES> PIECEVAL = { 6, 10, 4, 2, 2 };
+	const std::array<int,NPIECETYPES> PIECEVAL = { 3, 5, 2, 2, 1 };
 	long long pow10[19];
 	unsigned long long powAmodB[GSIDE*GSIDE*GSIDE];
 	const unsigned long long A = 2999999929;

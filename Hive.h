@@ -25,7 +25,7 @@ namespace Hive
 			bool is_outside(Hex p); 
 			bool is_accessible(Hex p, Hex p2);
 			bool has_neighbour_with_color(Hex p, Color color);
-			bool has_neighbour(Hex p);
+			bool has_neighbour(Hex p, bool all_layers = false);
 			bool put_piece(int x, int y, Color color, Piece piece, bool validated = false);
 			bool move_piece(int x, int y, Hex h, int layer = 0, bool validated = false);
 			void spawn(int x, int y, Color color, Piece piece, int layer = 0);
@@ -35,7 +35,8 @@ namespace Hive
 			Hex get_hex_with_color(Color color);
 			Hex get_hex_with_any_piece();
 			unsigned long long hash(long long depth);
-			vector<Hex> get_neighbours(Hex h, bool all_layers = false);
+			vector<Hex> get_neighbours(Hex h);
+			vector<Hex> get_empty_neighbours(Hex h, bool all_layers = false);
 			array<array<vector<Hex>,NPIECETYPES>,2> positions; // color, position, index
 			array<array<int,NPIECETYPES>,2> pieces_left;
 			array<int,2> total_pieces_left;
@@ -133,10 +134,12 @@ namespace Hive
  		return false;
 	}
 
-	bool Game::has_neighbour(Hex p)
+	bool Game::has_neighbour(Hex p, bool all_layers)
 	{
 		for (Hex h : get_neighbours(p)) {
-			if (grid[h].piece != Piece::NoPiece) return true;
+			if (grid[h.x][h.y][0].piece != Piece::NoPiece or (all_layers and grid[h.x][h.y][1].piece != Piece::NoPiece)) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -338,10 +341,9 @@ namespace Hive
 
 		vector<Hex> v; // rechable hexs
 		if (count_components() == 1) {
-			for (Hex p : get_neighbours(h0, true)) {
+			for (Hex p : get_empty_neighbours(h0, true)) {
 				if (grid[p].piece == Piece::NoPiece and is_accessible(h0, p)
-					and has_neighbour(p)
-					and (p.layer == 0 or (p.layer == 1 and grid[p.x][p.y][0].piece == Piece::NoPiece)))
+					and has_neighbour(p, true))
 				{
 					v.push_back(p);
 				}
@@ -438,14 +440,25 @@ namespace Hive
 		assert(false); // error
 	}
 
-	vector<Hex> Game::get_neighbours(Hex p, bool all_layers)
+	vector<Hex> Game::get_neighbours(Hex p)
 	{
 		vector<Hex> v;
 		for (const Hex& dir : dirs[p.x%2]) {
 			Hex h_ = p + dir;
-			for (int layer = int(all_layers); layer >= 0; --layer) {
+			Hex h = Hex(0, h_.x, h_.y);
+			if (not is_outside(h)) v.push_back(h);
+		}
+		return v;
+	}
+
+	vector<Hex> Game::get_empty_neighbours(Hex p, bool all_layers)
+	{
+		vector<Hex> v;
+		for (const Hex& dir : dirs[p.x%2]) {
+			Hex h_ = p + dir;
+			for (int layer = 0; layer <= int(all_layers); ++layer) {
 				Hex h = Hex(layer, h_.x, h_.y);
-				if (not is_outside(h)) {
+				if (not is_outside(h) and grid[h].piece == Piece::NoPiece) {
 					v.push_back(h);
 					break;
 				}
