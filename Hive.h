@@ -340,7 +340,8 @@ namespace Hive
 		if (count_components() == 1) {
 			for (Hex p : get_neighbours(h0, true)) {
 				if (grid[p].piece == Piece::NoPiece and is_accessible(h0, p)
-					and has_neighbour(p)) 
+					and has_neighbour(p)
+					and (p.layer == 0 or (p.layer == 1 and grid[p.x][p.y][0].piece == Piece::NoPiece)))
 				{
 					v.push_back(p);
 				}
