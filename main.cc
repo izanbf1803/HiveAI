@@ -104,6 +104,7 @@ bool select_piece(Game& game, int x, int y)
 int main(int argc, char *argv[])
 {
     srand(time(0)); // required to work with random numbers
+    precompute_global_variables(); // NEVER remove this
     SDL_Init(SDL_INIT_EVERYTHING);
 
     SDL_Window *window = SDL_CreateWindow("HiveAI", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_ALLOW_HIGHDPI);

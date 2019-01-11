@@ -33,6 +33,7 @@ namespace Hive
 			Color winner();
 			int surrounding_cnt(Hex h);
 			Hex get_hex_with_color(Color color);
+			unsigned long long hash(long long depth);
 			vector<Hex> get_neighbours(Hex h, bool all_layers = false);
 			array<array<vector<Hex>,NPIECETYPES>,2> positions; // color, position, index
 			array<array<int,NPIECETYPES>,2> pieces_left;
@@ -383,8 +384,8 @@ namespace Hive
 			for (Hex h_ : get_neighbours(h0)) { // Find BFS origin
 				if (grid[h_].piece == Piece::NoPiece and has_neighbour(h_)) { 
 					queue<Hex> q;
-					for (int y = max(h0.y - 3, 0); y <= min(h0.y + 3, GSIDE-1); ++y) { // initialize rechable points dist
-						for (int x = max(h0.x - 3, 0); x <= min(h0.x + 3, GSIDE-1); ++x) {
+					for (int y = max(h0.y - 3, 0); y <= min(h0.y + 3, (int)GSIDE-1); ++y) { // initialize rechable points dist
+						for (int x = max(h0.x - 3, 0); x <= min(h0.x + 3, (int)GSIDE-1); ++x) {
 							dist[x][y] = IINF;
 						}
 					}
@@ -494,6 +495,26 @@ namespace Hive
 			if (grid[p].piece != Piece::NoPiece) ++cnt;
 		}
 		return cnt;
+	}
+
+	unsigned long long Game::hash(long long depth)
+	{
+		unsigned long long H = 0;
+		
+		for (long long layer = 0; layer < 1; ++layer) {
+			for (long long y = 0; y < GSIDE; ++y) {
+				for (long long x = 0; x < GSIDE; ++x) {
+					Hex h = grid[x][y][layer];
+					H += powAmodB[layer*GSIDE*GSIDE+y*GSIDE+x] * ((h.piece + 1) * 3 + (h.color + 1)) % B;
+					H %= B;
+				}
+			}
+		}
+
+		H += powAmodB[GSIDE*GSIDE*GSIDE-1] * depth % B;
+		H %= B;
+
+		return H;
 	}
 
 }

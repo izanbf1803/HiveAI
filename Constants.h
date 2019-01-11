@@ -26,14 +26,31 @@ namespace Hive
 	const int NPIECETYPES = 5;
 	const int NPIECERPERPLAYER = 11;
 	const int NPIECES = 2*NPIECERPERPLAYER; // Number of pieces
-	const int GSIDE = 30; // Grid side size
-	const int MAXDEPTH = 4;
+	const long long GSIDE = 30; // Grid side size
+	// const int MAXDEPTH = 4;
+	const int TLE = 1000; // milliseconds max time for minimax
 	const Color player_color = Color::White;
 	const Color ia_color = Color::Black;
 	const std::array<Color,2> COLORS = {Color::Black, Color::White};
 	const std::array<Piece,NPIECETYPES> PIECES = { Ant, Bee, Beetle, Grasshopper, Spider };
 	const std::array<int,NPIECETYPES> PIECEVAL = { 6, 10, 4, 2, 2 };
-	const long long pow10[19] = {1LL, 10LL, 100LL, 1000LL, 10000LL, 100000LL, 1000000LL, 10000000LL, 100000000LL, 1000000000LL, 10000000000LL, 100000000000LL, 1000000000000LL, 10000000000000LL, 100000000000000LL, 1000000000000000LL, 10000000000000000LL, 100000000000000000LL, 1000000000000000000LL};
+	long long pow10[19];
+	unsigned long long powAmodB[GSIDE*GSIDE*GSIDE];
+	const unsigned long long A = 2999999929;
+	const unsigned long long B = 3333323333;
+
+	void precompute_global_variables()
+	{
+		pow10[0] = 1;
+		for (int i = 1; i < 19; ++i) {
+			pow10[i] = pow10[i-1] * 10;
+		}
+
+		powAmodB[0] = 1;
+		for (int i = 1; i < GSIDE*GSIDE*GSIDE; ++i) {
+			powAmodB[i] = powAmodB[i-1] * A % B;
+		}
+	}
 }
 
 #endif
