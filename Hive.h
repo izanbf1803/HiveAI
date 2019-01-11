@@ -33,6 +33,7 @@ namespace Hive
 			Color winner();
 			int surrounding_cnt(Hex h);
 			Hex get_hex_with_color(Color color);
+			Hex get_hex_with_any_piece();
 			unsigned long long hash(long long depth);
 			vector<Hex> get_neighbours(Hex h, bool all_layers = false);
 			array<array<vector<Hex>,NPIECETYPES>,2> positions; // color, position, index
@@ -320,7 +321,7 @@ namespace Hive
 		if (count_components() == 1) {
 			for (Hex p : get_neighbours(h0)) {
 				if (grid[p].piece == Piece::NoPiece and is_accessible(h0, p)
-					and has_neighbour(p)) 
+					and has_neighbour(p))
 				{
 					v.push_back(p);
 				}
@@ -424,6 +425,18 @@ namespace Hive
 		assert(false); // error
 	}
 
+	Hex Game::get_hex_with_any_piece()
+	{
+		for (Color color : COLORS) {
+			for (Piece piece : PIECES) {
+				for (Hex h : positions[color][piece]) {
+					if (h.layer == 0) return h;
+				}
+			}
+		}
+		assert(false); // error
+	}
+
 	vector<Hex> Game::get_neighbours(Hex p, bool all_layers)
 	{
 		vector<Hex> v;
@@ -445,7 +458,7 @@ namespace Hive
 		static bool visited[GSIDE][GSIDE];
 
 		memset(visited, 0, sizeof(visited));
-		Hex h0 = get_hex_with_color(player_color);
+		Hex h0 = get_hex_with_any_piece();
 		queue<Hex> q;
 		for (Hex h_ : get_neighbours(h0)) { // Find BFS origin
 			if (grid[h_].piece != Piece::NoPiece) { 

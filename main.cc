@@ -101,6 +101,19 @@ bool select_piece(Game& game, int x, int y)
     return false;
 }
 
+void finish_game(Game& game, Color winner)
+{
+    vector<Hex> to_destroy;
+    for (Piece piece : PIECES) {
+        for (Hex h : game.positions[(Color)!winner][piece]) {
+            to_destroy.push_back(h);
+        }
+    }
+    for (Hex h : to_destroy) {
+        game.destroy(h);
+    }
+}   
+
 int main(int argc, char *argv[])
 {
     srand(time(0)); // required to work with random numbers
@@ -142,108 +155,114 @@ int main(int argc, char *argv[])
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
+    Color winner = Color::NoColor;
     SDL_Event event;
     while (true) {
-        SDL_GetMouseState(&mouse_x, &mouse_y);
-        if (SDL_PollEvent(&event)) {
-            int x = screen_to_grid_x(mouse_x);
-            int y = screen_to_grid_y(x, mouse_y);
-            if (SDL_QUIT == event.type) {
-                break;
-            }
-            else if (SDL_MOUSEBUTTONUP == event.type) {
-                switch (event.button.button) {
-                    case SDL_BUTTON_LEFT: {
-                        bool valid = false;
-                        if (selected_hex.color == Color::NoColor) {
-                            valid = game.put_piece(x, y, player_color, (Piece)selected_piece);
-                        }
-                        else {
-                            // int layer = (selected_hex.piece == Piece::Beetle and game.grid[x][y][0].piece != Piece::NoPiece ? 1 : 0);
-                            // valid = game.move_piece(x, y, selected_hex, layer);
-                            if (selected_hex.color == player_color) {
-                                valid = game.move_piece(x, y, selected_hex);
-                                if (not valid and selected_hex.piece == Piece::Beetle) {
-                                    valid = game.move_piece(x, y, selected_hex, 1);
+        if (winner == Color::NoColor) {
+            SDL_GetMouseState(&mouse_x, &mouse_y);
+            if (SDL_PollEvent(&event)) {
+                int x = screen_to_grid_x(mouse_x);
+                int y = screen_to_grid_y(x, mouse_y);
+                if (SDL_QUIT == event.type) {
+                    break;
+                }
+                else if (SDL_MOUSEBUTTONUP == event.type) {
+                    switch (event.button.button) {
+                        case SDL_BUTTON_LEFT: {
+                            bool valid = false;
+                            if (selected_hex.color == Color::NoColor) {
+                                valid = game.put_piece(x, y, player_color, (Piece)selected_piece);
+                            }
+                            else {
+                                // int layer = (selected_hex.piece == Piece::Beetle and game.grid[x][y][0].piece != Piece::NoPiece ? 1 : 0);
+                                // valid = game.move_piece(x, y, selected_hex, layer);
+                                if (selected_hex.color == player_color) {
+                                    valid = game.move_piece(x, y, selected_hex);
+                                    if (not valid and selected_hex.piece == Piece::Beetle) {
+                                        valid = game.move_piece(x, y, selected_hex, 1);
+                                    }
+                                }
+
+                                if (valid) {
+                                    winner = game.winner();
+                                    if (winner != Color::NoColor) finish_game(game, winner);
+                                    selected_hex = Hex();
                                 }
                             }
-
-                            if (valid) {
-                                selected_hex = Hex();
+                            cout << "PUT_event " << valid << endl;
+                            if (valid and winner == Color::NoColor) {
+                                cout << "IA turn:" << endl;
+                                AI::play(game);
+                                cout << "IA turn - END" << endl;
+                                winner = game.winner();
+                                if (winner != Color::NoColor) finish_game(game, winner);
                             }
+                            break;
                         }
-                        cout << "PUT_event " << valid << endl;
-                        if (valid) {
-                            cout << "IA turn:" << endl;
-                            AI::play(game);
-                            cout << "IA turn - END" << endl;
+                        case SDL_BUTTON_RIGHT: {
+                            bool valid = select_piece(game, x, y);
+                            cout << "PICK_event " << valid << endl;
+                            break;
                         }
-                        break;
+                        default: break;
                     }
-                    case SDL_BUTTON_RIGHT: {
-                        bool valid = select_piece(game, x, y);
-                        cout << "PICK_event " << valid << endl;
-                        break;
+                    D(selected_hex) <<  endl;
+                }
+                else if (SDL_TEXTINPUT == event.type) {
+                    char c = tolower(event.text.text[0]);
+                    if (c >= '1' and c <= '5') {
+                        selected_piece = c - '0' - 1;
                     }
-                    default: break;
-                }
-                D(selected_hex) <<  endl;
-            }
-            else if (SDL_TEXTINPUT == event.type) {
-                char c = tolower(event.text.text[0]);
-                if (c >= '1' and c <= '5') {
-                    selected_piece = c - '0' - 1;
-                }
 
-                // DEBUG:
-                if (c == 'd') {
-                    cout << "--> " << x << " " << y << " -  l0: " << game.grid[x][y][0] << "  " << "l1: " <<  game.grid[x][y][1] << endl;
+                    // DEBUG:
+                    if (c == 'd') {
+                        cout << "--> " << x << " " << y << " -  l0: " << game.grid[x][y][0] << "  " << "l1: " <<  game.grid[x][y][1] << endl;
+                    }
                 }
             }
-            // else if (SDL_KEYDOWN == event.type) {
-            //     // switch (event.key.keysym.sym) {
-            //     //     case SDLK_1
-
-            //     //     default:
-            //     //         break;
-            //     // }
-            //     cout << event.key.keysym.unicode << endl;
-            // }
+        }
+        else {
+            SDL_PollEvent(&event); // ignore input
         }
         
         draw_hexgrid(game);
-        if (selected_hex.color == Color::NoColor) {
-            if (game.pieces_left[player_color][selected_piece] > 0) draw_piece(selected_piece);
-        }
-        else {
-            draw_piece(selected_hex.piece);
-        }
 
-        // DEBUG:
-        for (Color c : {Color::Black, Color::White}) {
-            vector<Hex> locations;
-            if (selected_hex.piece == Piece::NoPiece) locations = game.valid_spawns(c);
-            if (selected_hex.piece != Piece::NoPiece and selected_hex.color == c) locations = game.valid_moves(game.grid[selected_hex]);
-            for (Hex h : locations) {
-                int sx = h.x * hex_w;
-                int sy = h.y * hex_h - (h.x&1 ? hexgrid_img->h/2 : 0);
-                SDL_SetRenderDrawColor(
-                    renderer, 
-                    (c == 0 ? 255 : 0), 
-                    0, 
-                    (c == 1 ? 255 : 0), 
-                    75
-                );
-                draw_circle(sx+hexgrid_img->w/2, sy+hexgrid_img->h/2, hexgrid_img->h/3);
-                // Restore:
-                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        if (winner == Color::NoColor) {
+            if (selected_hex.color == Color::NoColor) {
+                if (game.pieces_left[player_color][selected_piece] > 0) draw_piece(selected_piece);
+            }
+            else {
+                draw_piece(selected_hex.piece);
             }
         }
 
-        // int cx = grid_to_screen_x(2);
-        // int cy = grid_to_screen_y(cx, 2);
-        // draw_circle(cx,cy,10);
+        for (Color c : COLORS) {
+            if (winner == Color::NoColor or c == winner) {
+                vector<Hex> locations;
+                if (winner != Color::NoColor or selected_hex.piece == Piece::NoPiece) {
+                    locations = game.valid_spawns(c);
+                }
+                if (winner == Color::NoColor and selected_hex.piece != Piece::NoPiece and selected_hex.color == c) {
+                    locations = game.valid_moves(game.grid[selected_hex]);
+                }
+                for (Hex h : locations) {
+                    int sx = h.x * hex_w;
+                    int sy = h.y * hex_h - (h.x&1 ? hexgrid_img->h/2 : 0);
+                    SDL_SetRenderDrawColor(
+                        renderer, 
+                        (c == 0 ? 255 : 0), 
+                        0, 
+                        (c == 1 ? 255 : 0), 
+                        75
+                    );
+                    draw_circle(sx+hexgrid_img->w/2, sy+hexgrid_img->h/2, hexgrid_img->h/3);
+                    // Restore:
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                }
+            }
+        }
 
+        SDL_Delay(1);
         SDL_RenderPresent(renderer);
         SDL_RenderClear(renderer);
     }   

@@ -238,6 +238,7 @@ namespace AI
 		reset_clock();
 		V<PlayInfo> plays = gen_plays(game, ia_color);
 		PlayInfo best_play = play_info_null();
+		best_play.score = -LINF;
 		int max_depth = 1;
 		for (max_depth = 1; delta_time() < TLE; ++max_depth) { // iterative deepening
 			for (int i = 0; i < TT_size; ++i) {
