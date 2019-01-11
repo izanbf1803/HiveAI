@@ -30,7 +30,6 @@ namespace AI
 	};
 
 	clock_t start;
-	const int TT_size = 16384;
 	map<ull,PlayInfo> TT[TT_size];
 
 	std::ostream& operator<<(std::ostream& os, const PlayInfo& p)

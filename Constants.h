@@ -29,6 +29,7 @@ namespace Hive
 	const long long GSIDE = 30; // Grid side size
 	// const int MAXDEPTH = 4;
 	const int TLE = 1000; // milliseconds max time for minimax
+	const int TT_size = 16384;
 	const Color player_color = Color::White;
 	const Color ia_color = Color::Black;
 	const std::array<Color,2> COLORS = {Color::Black, Color::White};
