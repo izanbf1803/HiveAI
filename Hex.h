@@ -19,8 +19,8 @@ namespace Hive
             inline long long id() const;
             // layer : [0, 1]
             // color : [-1, 1]
-            // x : [0, GSIDE]
-            // y : [0, GSIDE]
+            // x : [0, GSIDE-1]
+            // y : [0, GSIDE-1]
             int layer, x, y;
             Color color;
             Piece piece;

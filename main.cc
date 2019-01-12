@@ -125,18 +125,11 @@ int main(int argc, char *argv[])
     // Check that the window was successfully created
     if (NULL == window) {
         // In the case that the window could not be made...
-        std::cout << "Could not create window: " << SDL_GetError() << std::endl;
+        if (DEBUG) cout << "Could not create window: " << SDL_GetError() << endl;
         return 1;
     }
     
     Game game(Piece::Spider);
-    // for (int y = 0; y < GSIDE; ++y) {
-    // 	for (int x = 0; x < GSIDE; ++x) {
-    // 		cout << game.grid[x][y][0] << ' ';
-    // 	}
-    // 	cout << endl;
-    // }
-    // cout << endl << endl;
 
     renderer = SDL_CreateRenderer(window, -1, 0);
     hexgrid_img = SDL_LoadBMP("img/hex/hexagon.bmp");
@@ -189,11 +182,11 @@ int main(int argc, char *argv[])
                                     selected_hex = Hex();
                                 }
                             }
-                            cout << "PUT_event " << valid << endl;
+                            if (DEBUG) cout << "PUT_event " << valid << endl;
                             if (valid && winner == Color::NoColor) {
-                                cout << "IA turn:" << endl;
+                                if (DEBUG) cout << "IA turn:" << endl;
                                 Minimax::play(game);
-                                cout << "IA turn - END" << endl;
+                                if (DEBUG) cout << "IA turn - END" << endl;
                                 winner = game.winner();
                                 if (winner != Color::NoColor) finish_game(game, winner);
                             }
@@ -201,12 +194,12 @@ int main(int argc, char *argv[])
                         }
                         case SDL_BUTTON_RIGHT: {
                             bool valid = select_piece(game, x, y);
-                            cout << "PICK_event " << valid << endl;
+                            if (DEBUG) cout << "PICK_event " << valid << endl;
                             break;
                         }
                         default: break;
                     }
-                    D(selected_hex) <<  endl;
+                    if (DEBUG) D(selected_hex) <<  endl;
                 }
                 else if (SDL_TEXTINPUT == event.type) {
                     char c = tolower(event.text.text[0]);
@@ -215,7 +208,7 @@ int main(int argc, char *argv[])
                     }
 
                     // DEBUG:
-                    if (c == 'd') {
+                    if (DEBUG && c == 'd') {
                         cout << "--> " << x << " " << y << " -  l0: " << game.grid[x][y][0] << "  " << "l1: " <<  game.grid[x][y][1] << endl;
                     }
                 }

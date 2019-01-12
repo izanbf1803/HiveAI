@@ -134,7 +134,7 @@ namespace AI
 	ll get_heuristic_score(Game& game)
 	{
 		ll score = get_heuristic_score_for_color(game, ia_color) - get_heuristic_score_for_color(game, player_color);
-		// D(score) << endl;
+		// if (DEBUG) D(score) << endl;
 		return score;
 	}
 

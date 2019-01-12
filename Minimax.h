@@ -17,8 +17,9 @@ namespace Minimax
 
 		ull H = game.hash(depth); 
 		int TT_idx = H % TT_size; // transposition table
-		auto TT_it = TT[TT_idx].find(H);
-		if (TT_it != TT[TT_idx].end()) {
+		auto TTtree = TT[TT_idx];
+		auto TT_it = TTtree.find(H);
+		if (TT_it != TTtree.end()) {
 			return TT_it->second;
 		}
 
@@ -27,9 +28,9 @@ namespace Minimax
 		best_play.score = (color == ia_color ? -LINF : LINF);
 
 		Color winner = game.winner();
-		// D(winner) << endl;
+		// if (DEBUG) D(winner) << endl;
 		if (winner != Color::NoColor) {
-			best_play.score = (color == ia_color ? LINF : -LINF);
+			best_play.score = (winner == ia_color ? LINF : -LINF);
 			return best_play;
 		}
 
@@ -50,7 +51,7 @@ namespace Minimax
 					V<PlayInfo> next_plays = gen_plays(game, (Color)!color);
 					play.score = minimax(game, next_plays, (Color)!color, depth+1, max_depth, alpha, beta).score;
 				}
-				// D(play.score) << endl;
+				// if (DEBUG) D(play.score) << endl;
 
 				if (color == ia_color) { // maximize
 					if (play > best_play) best_play = play;
@@ -74,9 +75,10 @@ namespace Minimax
 			}
 		}
 
-		if (best_play.type != PlayType::NoPlay) {
-			TT[TT_idx][H] = best_play; // memoize
+		if (best_play.type == PlayType::NoPlay) {
+			best_play.score = (color == ia_color ? -LINF : LINF);
 		}
+		TTtree[H] = best_play; // memoize
 		return best_play;
 	}
 
@@ -97,7 +99,7 @@ namespace Minimax
 				return a > b;
 			});
 		}
-		D(delta_time()), D(best_play), D(max_depth) << endl;
+		if (DEBUG) D(delta_time()), D(best_play), D(max_depth) << endl;
 		if (best_play.type == PlayType::Put) {
 			game.put_piece(best_play.h.x, best_play.h.y, ia_color, best_play.piece);
 		}
