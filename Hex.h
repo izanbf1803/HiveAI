@@ -41,9 +41,9 @@ namespace Hive
     bool Hex::operator==(const Hex& h) const
     {
         return layer == h.layer
-            and x == h.x and y == h.y 
-            and color == h.color 
-            and piece == h.piece;
+            && x == h.x && y == h.y 
+            && color == h.color 
+            && piece == h.piece;
     }
 
     inline long long Hex::id() const

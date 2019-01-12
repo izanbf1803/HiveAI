@@ -1,7 +1,7 @@
 #pragma GCC optimize("Ofast","unroll-loops","omit-frame-pointer","inline") // Optimization flags
 #pragma GCC option("arch=native","tune=native","no-zero-upper") // Enable AVX
 #pragma GCC target("avx")  // Enable AVX
-#include <x86intrin.h> // AVX/SSE Extensions
+// #include <x86intrin.h> // AVX/SSE Extensions
 
 #ifndef HIVE_CONSTANTS_H
 #define HIVE_CONSTANTS_H

@@ -1,7 +1,7 @@
 #include <SDL2/SDL.h>
 #include "Hive.h"
 #include "Constants.h"
-#include "AI.h"
+#include "Minimax.h"
 #include <stdlib.h>
 #include <time.h>
 #include <iostream>
@@ -47,12 +47,12 @@ void draw_hex(SDL_Texture* texture, int hexgrid_x, int hexgrid_y)
 
 void draw_hexgrid(Game& game)
 {
-    assert(hex_w >= 0 and hex_h >= 0);
+    assert(hex_w >= 0 && hex_h >= 0);
     // TODO: implement multiple layers
     for (int layer = 0; layer < 2; ++layer) {
         for (int i = -1; i * hex_w <= WIDTH; ++i) {
             for (int j = -1; j * hex_h <= HEIGHT; ++j) {
-                if (game.is_outside(Hex(layer, i, j)) or game.grid[i][j][layer].piece == Piece::NoPiece) {
+                if (game.is_outside(Hex(layer, i, j)) || game.grid[i][j][layer].piece == Piece::NoPiece) {
                     if (layer == 0) draw_hex(hexgrid_tex, i, j);
                 }
                 else {
@@ -174,11 +174,11 @@ int main(int argc, char *argv[])
                                 valid = game.put_piece(x, y, player_color, (Piece)selected_piece);
                             }
                             else {
-                                // int layer = (selected_hex.piece == Piece::Beetle and game.grid[x][y][0].piece != Piece::NoPiece ? 1 : 0);
+                                // int layer = (selected_hex.piece == Piece::Beetle && game.grid[x][y][0].piece != Piece::NoPiece ? 1 : 0);
                                 // valid = game.move_piece(x, y, selected_hex, layer);
                                 if (selected_hex.color == player_color) {
                                     valid = game.move_piece(x, y, selected_hex);
-                                    if (not valid and selected_hex.piece == Piece::Beetle) {
+                                    if (!valid && selected_hex.piece == Piece::Beetle) {
                                         valid = game.move_piece(x, y, selected_hex, 1);
                                     }
                                 }
@@ -190,9 +190,9 @@ int main(int argc, char *argv[])
                                 }
                             }
                             cout << "PUT_event " << valid << endl;
-                            if (valid and winner == Color::NoColor) {
+                            if (valid && winner == Color::NoColor) {
                                 cout << "IA turn:" << endl;
-                                AI::play(game);
+                                Minimax::play(game);
                                 cout << "IA turn - END" << endl;
                                 winner = game.winner();
                                 if (winner != Color::NoColor) finish_game(game, winner);
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
                 }
                 else if (SDL_TEXTINPUT == event.type) {
                     char c = tolower(event.text.text[0]);
-                    if (c >= '1' and c <= '5') {
+                    if (c >= '1' && c <= '5') {
                         selected_piece = c - '0' - 1;
                     }
 
@@ -237,12 +237,12 @@ int main(int argc, char *argv[])
         }
 
         for (Color c : COLORS) {
-            if (winner == Color::NoColor or c == winner) {
+            if (winner == Color::NoColor || c == winner) {
                 vector<Hex> locations;
-                if (winner != Color::NoColor or selected_hex.piece == Piece::NoPiece) {
+                if (winner != Color::NoColor || selected_hex.piece == Piece::NoPiece) {
                     locations = game.valid_spawns(c);
                 }
-                if (winner == Color::NoColor and selected_hex.piece != Piece::NoPiece and selected_hex.color == c) {
+                if (winner == Color::NoColor && selected_hex.piece != Piece::NoPiece && selected_hex.color == c) {
                     locations = game.valid_moves(game.grid[selected_hex]);
                 }
                 for (Hex h : locations) {
