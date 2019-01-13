@@ -16,12 +16,12 @@ namespace MCTS
 			Node();
 			void expand(Game& game);
 			Node* select();
-			bool simulate(Game& game, clock_t time0, Color color);
-			void backpropagation(bool win);
+			ll simulate(Game& game, clock_t time0, Color color);
+			void backpropagation(ll win);
 			Node* play_hive(Game& game);
 			void destroy();
 			int visits;
-			int wins;
+			ll wins;
 			bool expanded;
 			Color color;
 			PlayInfo play;
@@ -84,9 +84,53 @@ namespace MCTS
 		expanded = true;
 	}
 
-	bool Node::simulate(Game& game, clock_t time0, Color _color)
+	// ll Node::simulate(Game& game, clock_t time0, Color _color) // heuristic
+	// {
+	// 	const int depth = 32;
+	// 	assert(depth%2==0); // to ensure _color is the same after iterations
+
+	// 	V<PlayInfo> stack1;
+	// 	V<Color> stack2;
+	// 	stack1.reserve(depth);
+	// 	stack2.reserve(depth);
+	// 	bool end = false;
+	// 	ll win = 0;
+
+	// 	for (int i = 0; !end && i < depth; ++i) {
+	// 		Color winner = game.winner();
+	// 		if (winner != Color::NoColor) {
+	// 			win = (winner == color ? pow10[5] : -pow10[5]);
+	// 			end = true;
+	// 		}
+
+	// 		PlayInfo p = gen_random_play(game, _color);
+
+	// 		if (p.type != PlayType::NoPlay) {
+	// 			do_play(game, p, _color);
+	// 			_color = (Color)!color;
+
+	// 			stack1.push_back(p);
+	// 			stack2.push_back(_color);
+	// 		}
+	// 		else {
+	// 			end = true;
+	// 		}
+	// 	}
+
+	// 	win = get_heuristic_score_for_color(game, _color);
+
+	// 	while (!stack1.empty()) {
+	// 		undo_play(game, stack1.back(), stack2.back());
+	// 		stack1.pop_back();
+	// 		stack2.pop_back();
+	// 	}
+
+	// 	return win;
+	// }
+
+	int Node::simulate(Game& game, clock_t time0, Color _color) binary -> win / lose
 	{
-		const int depth = 128;
+		const int depth = 24;
 
 		V<PlayInfo> stack1;
 		V<Color> stack2;
@@ -121,8 +165,6 @@ namespace MCTS
 			stack1.pop_back();
 			stack2.pop_back();
 		}
-
-		return win;
 	}
 
 	// bool Node::simulate(Game& game, clock_t time0, Color _color) // optimized for future search
@@ -168,12 +210,12 @@ namespace MCTS
 	// 	return win;
 	// }
 
-	void Node::backpropagation(bool win)
+	void Node::backpropagation(ll win)
 	{
 		Node* node = this;
 		while (node != NULL) {
 			++node->visits;
-			if (win) ++node->wins;
+			node->wins += win;
 			node = node->parent;
 		}
 	}
@@ -224,10 +266,7 @@ namespace MCTS
 				if (to_explore != promising) do_play(game, to_explore->play, (Color)!to_explore->color);
 
 				reset_clock(simulation_time0);
-
-				
-				bool win = to_explore->simulate(game, simulation_time0, (Color)!to_explore->color); 
-				
+				ll win = to_explore->simulate(game, simulation_time0, (Color)!to_explore->color); 
 				
 				to_explore->backpropagation(win);
 

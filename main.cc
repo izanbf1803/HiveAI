@@ -199,19 +199,19 @@ int main(int argc, char *argv[])
                                 if (DEBUG) cout << "IA turn:" << endl;
 
 #if USE_MCTS
-                                // mcts = new MCTS::Node;
-                                // mcts->play = AI::play_info_null();
-                                // mcts->color = ia_color;
-
-
-                                for (MCTS::Node* child : mcts->childs) {
-                                    if (child->play == player_play) {
-                                        mcts = child;
-                                        break;
-                                    }
-                                }
-                                mcts->parent = NULL;
+                                mcts = new MCTS::Node;
                                 mcts->play = AI::play_info_null();
+                                mcts->color = ia_color;
+
+
+                                // for (MCTS::Node* child : mcts->childs) {
+                                //     if (child->play == player_play) {
+                                //         mcts = child;
+                                //         break;
+                                //     }
+                                // }
+                                // mcts->parent = NULL;
+                                // mcts->play = AI::play_info_null();
                                 // D(mcts->color) << endl;
 
 
