@@ -21,8 +21,8 @@ namespace Hive
 			Game(Piece player_first_piece);
 			vector<Hex> valid_moves(Hex p);
 			vector<Hex> valid_spawns(Color color);
-			bool is_locked(Hex p);
-			bool is_outside(Hex p); 
+			inline bool is_locked(Hex p);
+			inline bool is_outside(Hex p) const; 
 			bool is_accessible(Hex p, Hex p2);
 			bool has_neighbour_with_color(Hex p, Color color);
 			bool has_neighbour(Hex p, bool all_layers = false);
@@ -90,18 +90,14 @@ namespace Hive
 		spawn(initial_pos[player_color].x, initial_pos[player_color].y, player_color, player_first_piece);
 	}
 
-	bool Game::is_locked(Hex p)
+	inline bool Game::is_locked(Hex p)
 	{
-		if (p.layer == 0 && grid[p.x][p.y][1].piece != Piece::NoPiece) return true;
-		return false;
+		return p.layer == 0 && grid[p.x][p.y][1].piece != Piece::NoPiece;
 	}
 
-	bool Game::is_outside(Hex p)
+	inline bool Game::is_outside(Hex p) const
 	{
-		if (p.layer < 0 || p.layer > 1) return true;
-		if (p.x < 0 || p.x >= GSIDE) return true;
-		if (p.y < 0 || p.y >= GSIDE) return true;
-		return false;
+		return p.layer < 0 || p.layer > 1 || p.x < 0 || p.x >= GSIDE || p.y < 0 || p.y >= GSIDE;
 	}
 
 	bool Game::is_accessible(Hex p, Hex p2)
@@ -123,19 +119,41 @@ namespace Hive
 
 	bool Game::has_neighbour_with_color(Hex p, Color color)
 	{
-		for (Hex h : get_neighbours(p)) {
-			if (grid[h.x][h.y][0].color == color) {
-				return true;
+		// for (Hex h : get_neighbours(p)) {
+		// 	if (grid[h.x][h.y][0].color == color) {
+		// 		return true;
+		// 	}
+ 		// }
+ 		// return false;
+
+		// Optimized: 
+		for (const Hex& dir : dirs[p.x%2]) {
+			Hex h_ = p + dir;
+			Hex h = Hex(0, h_.x, h_.y);
+			if (!is_outside(h)) {
+				if (grid[h].color == color) return true;
 			}
- 		}
- 		return false;
+		}
+		return false;
 	}
 
 	bool Game::has_neighbour(Hex p, bool all_layers)
 	{
-		for (Hex h : get_neighbours(p)) {
-			if (grid[h.x][h.y][0].piece != Piece::NoPiece || (all_layers && grid[h.x][h.y][1].piece != Piece::NoPiece)) {
-				return true;
+		// for (Hex h : get_neighbours(p)) {
+		// 	if (grid[h.x][h.y][0].piece != Piece::NoPiece || (all_layers && grid[h.x][h.y][1].piece != Piece::NoPiece)) {
+		// 		return true;
+		// 	}
+		// }
+		// return false;
+
+		// Optimized:
+		for (const Hex& dir : dirs[p.x%2]) {
+			Hex h_ = p + dir;
+			Hex h = Hex(0, h_.x, h_.y);
+			if (!is_outside(h)) {
+				if (grid[h.x][h.y][0].piece != Piece::NoPiece || (all_layers && grid[h.x][h.y][1].piece != Piece::NoPiece)) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -143,14 +161,16 @@ namespace Hive
 
 	bool Game::put_piece(int x, int y, Color color, Piece piece, bool validated)
 	{
-		if (pieces_left[color][piece] == 0) return false;
-		if (is_outside(Hex(0, x, y))) return false;
-		if (piece != Piece::Bee && !bee_spawned[color]
-			&& NPIECERPERPLAYER - total_pieces_left[color] >= 3) 
-		{
-			return false;
+		if (!validated) {
+			if (pieces_left[color][piece] == 0) return false;
+			if (is_outside(Hex(0, x, y))) return false;
+			if (piece != Piece::Bee && !bee_spawned[color]
+				&& NPIECERPERPLAYER - total_pieces_left[color] >= 3) 
+			{
+				return false;
+			}
 		}
-		
+			
 		Hex h = Hex(0, color, x, y, piece);
 
 		if (!validated) {
@@ -171,9 +191,11 @@ namespace Hive
 
 	bool Game::move_piece(int x, int y, Hex _h, int layer, bool validated)
 	{
-		if (is_outside(Hex(layer, x, y))) return false;
-		if (is_locked(_h)) return false;
-		if (grid[x][y][layer].piece != Piece::NoPiece) return false;
+		if (!validated) {
+			if (is_outside(Hex(layer, x, y))) return false;
+			if (is_locked(_h)) return false;
+			if (grid[x][y][layer].piece != Piece::NoPiece) return false;
+		}
 
 		Hex h = Hex(layer, _h.color, x, y, _h.piece);
 
@@ -211,6 +233,7 @@ namespace Hive
 	{
 		assert(!is_outside(h));
 		h = grid[h];
+		if (h.piece == -1) D(h) << std::endl;
 		assert(h.piece != -1);
 		grid[h] = Hex(h.layer, h.x, h.y);
 		if (h.piece == Piece::Bee) bee_spawned[h.color] = false;
@@ -284,6 +307,7 @@ namespace Hive
 		destroy(h0); // Temporally delete piece
 
 		vector<Hex> v; // rechable hexs
+		v.reserve(32);
 		if (count_components() == 1) {
 			memset(visited, 0, sizeof(visited));
 			queue<Hex> q;
@@ -292,6 +316,7 @@ namespace Hive
 			while (!q.empty()) {
 				Hex h = grid[q.front()];
 				q.pop();
+
 				for (Hex p : get_neighbours(h)) {
 					if (!is_outside(p) && !visited[p.x][p.y]
 						&& is_accessible(h, p) && grid[p].piece == Piece::NoPiece

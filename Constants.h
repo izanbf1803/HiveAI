@@ -15,6 +15,8 @@
 // DEBUG:
 #define D(x) std::cout << #x << " = " << (x) << ", "
 
+#define USE_MCTS 1
+
 namespace Hive
 {
 
@@ -24,12 +26,14 @@ namespace Hive
 	const bool DEBUG = true;
 	const int IINF = 0x7FFFFFFF;
 	const long long LINF = 0x7FFFFFFFFFFFFFFF;
+	const long double INF = 1e300;
+	const long double EPS = 1e-7;
 	const int NPIECETYPES = 5;
 	const int NPIECERPERPLAYER = 11;
 	const int NPIECES = 2*NPIECERPERPLAYER; // Number of pieces
 	const long long GSIDE = 30; // Grid side size
 	// const int MAXDEPTH = 4;
-	const int TLE = 500; // 5000; // milliseconds max time for minimax
+	const int TLE = 10000; // milliseconds max time for minimax
 	const int TT_size = 16384;
 	const Color player_color = Color::White;
 	const Color ia_color = Color::Black;
@@ -40,6 +44,7 @@ namespace Hive
 	unsigned long long powAmodB[GSIDE*GSIDE*GSIDE];
 	const unsigned long long A = 2999999929;
 	const unsigned long long B = 3333323333;
+	const long double C = 1.4142135623730951; // sqrt(2)
 
 	void precompute_global_variables()
 	{

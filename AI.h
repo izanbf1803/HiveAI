@@ -5,18 +5,15 @@
 #include <cmath>
 #include <ctime>
 #include <map>
+#include <chrono>
 
 namespace AI
 {
 	typedef long long ll; // easier to type
 	typedef unsigned long long ull; // easier to type
-	using std::endl; // DEBUG
-	using std::array;
-	using std::max;
-	using std::min;
-	using std::abs;
-	using std::map;
+	typedef long double ld; // easier to type
 	template <typename T> using V = std::vector<T>; // easier to type
+	using namespace std;
 	using namespace Hive;
 
 	enum PlayType { NoPlay, Put, Move };
@@ -28,8 +25,6 @@ namespace AI
 		Piece piece; // PlayType == Put
 		Hex h2; 	 // PlayType == Move
 	};
-
-	clock_t __time0__;
 
 	std::ostream& operator<<(std::ostream& os, const PlayInfo& p)
     {  
@@ -65,14 +60,14 @@ namespace AI
 		return false;
 	}
 
-	inline int delta_time()
+	inline int delta_time(const clock_t& time0)
 	{
-		return (clock() - __time0__) * 1000 / CLOCKS_PER_SEC;
+		return (clock() - time0) * 1000 / CLOCKS_PER_SEC;
 	}
 
-	inline void reset_clock()
+	inline void reset_clock(clock_t& time0)
 	{
-		__time0__ = clock();
+		time0 = clock();
 	}
 
 
@@ -86,13 +81,14 @@ namespace AI
 		return p;
 	}
 
-	PlayInfo play_info_move(ll score, Hex h, Hex h2)
+	PlayInfo play_info_move(ll score, Hex h, Hex h2, Piece piece)
 	{
 		PlayInfo p;
 		p.type = PlayType::Move;
 		p.score = score;
 		p.h = h;
 		p.h2 = h2;
+		p.piece = piece;
 		return p;
 	}
 
@@ -138,6 +134,64 @@ namespace AI
 		return score;
 	}
 
+	PlayInfo gen_random_play_put(Game& game, Color color)
+	{
+		V<Hex> vspawns = game.valid_spawns(color);
+		random_shuffle(vspawns.begin(), vspawns.end());
+		array<Piece,5> pieces = PIECES;
+		random_shuffle(pieces.begin(), pieces.end());
+		for (Piece piece : pieces) {
+			if (game.pieces_left[color][piece] == 0) continue;
+			for (Hex p : vspawns) {
+				if (game.is_outside(Hex(0, p.x, p.y))) continue;
+				if (piece != Piece::Bee && !game.bee_spawned[color]
+					&& NPIECERPERPLAYER - game.total_pieces_left[color] >= 3) 
+				{
+					continue;
+				}
+
+				return play_info_put(0, p, piece);
+			}
+		}
+
+		return play_info_null();
+	}
+
+	PlayInfo gen_random_play_move(Game& game, Color color)
+	{
+		array<Piece,5> pieces = PIECES;
+		random_shuffle(pieces.begin(), pieces.end());
+		for (Piece piece : pieces) {
+			for (Hex h : game.positions[color][piece]) {
+				if (game.is_locked(h)) continue;
+				V<Hex> valid_moves = game.valid_moves(h);
+				random_shuffle(valid_moves.begin(), valid_moves.end());
+				for (Hex p : valid_moves) {
+					if (game.is_outside(Hex(p.layer, p.x, p.y))) continue;
+					if (game.grid[p.x][p.y][p.layer].piece != Piece::NoPiece) continue;
+
+					return play_info_move(0, h, p, piece);
+				}	
+			}
+		}
+
+		return play_info_null();
+	}
+
+	PlayInfo gen_random_play(Game& game, Color color)
+	{
+		if (rand() % 2) {
+			PlayInfo play = gen_random_play_put(game, color);
+			if (play.type != PlayType::NoPlay) return play;
+			return gen_random_play_move(game, color);
+		}
+		else {
+			PlayInfo play = gen_random_play_move(game, color);
+			if (play.type != PlayType::NoPlay) return play;
+			return gen_random_play_put(game, color);
+		}
+	}
+
 	V<PlayInfo> gen_plays(Game& game, Color color)
 	{
 		V<PlayInfo> plays;
@@ -145,15 +199,28 @@ namespace AI
 
 		V<Hex> vspawns = game.valid_spawns(color);
 		for (Piece piece : PIECES) {
+			if (game.pieces_left[color][piece] == 0) continue;
 			for (Hex p : vspawns) {
+				if (game.is_outside(Hex(0, p.x, p.y))) continue;
+				if (piece != Piece::Bee && !game.bee_spawned[color]
+					&& NPIECERPERPLAYER - game.total_pieces_left[color] >= 3) 
+				{
+					continue;
+				}
+
 				plays.push_back(play_info_put(0, p, piece));
 			}
 		}
 
+		
 		for (Piece piece : PIECES) {
 			for (Hex h : game.positions[color][piece]) {
+				if (game.is_locked(h)) continue;
 				for (Hex p : game.valid_moves(h)) {
-					plays.push_back(play_info_move(0, h, p));
+					if (game.is_outside(Hex(p.layer, p.x, p.y))) continue;
+					if (game.grid[p.x][p.y][p.layer].piece != Piece::NoPiece) continue;
+
+					plays.push_back(play_info_move(0, h, p, piece));
 				}	
 			}
 		}
@@ -161,6 +228,33 @@ namespace AI
 		random_shuffle(plays.begin(), plays.end());
 
 		return plays;
+	}
+
+	bool do_play(Game& game, PlayInfo play, Color color)
+	{
+		if (play.type == PlayType::Put) {
+			return game.put_piece(play.h.x, play.h.y, color, play.piece, true);
+		}
+		else if (play.type == PlayType::Move) {
+			return game.move_piece(play.h2.x, play.h2.y, play.h, play.h2.layer, true);
+		}
+		if (DEBUG) cerr << "do_play() - ERROR: NO MOVE" << endl;
+		return false;
+	}
+
+	bool undo_play(Game& game, PlayInfo play, Color color) 
+	{
+		if (play.type == PlayType::Put) { 
+			game.destroy(Hex(0, play.h.x, play.h.y));
+			return true;
+		}
+		else if (play.type == PlayType::Move) {
+			game.destroy(play.h2); // always destroy first to avoid piece tracking errors
+			game.spawn(play.h.x, play.h.y, color, play.piece, play.h.layer);
+			return true;
+		}
+		if (DEBUG) cerr << "undo_play() - ERROR: NO MOVE" << endl;
+		return false;
 	}
 
 }

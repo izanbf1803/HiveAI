@@ -1,7 +1,9 @@
 #include <SDL2/SDL.h>
 #include "Hive.h"
 #include "Constants.h"
+#include "AI.h"
 #include "Minimax.h"
+#include "MCTS.h"
 #include <stdlib.h>
 #include <time.h>
 #include <iostream>
@@ -148,12 +150,19 @@ int main(int argc, char *argv[])
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
+#if USE_MCTS
+    MCTS::Node* mcts = new MCTS::Node;
+    mcts->play = AI::play_info_null();
+    mcts->color = ia_color;
+#endif
+
     Color winner = Color::NoColor;
     SDL_Event event;
     while (true) {
         if (winner == Color::NoColor) {
             SDL_GetMouseState(&mouse_x, &mouse_y);
             if (SDL_PollEvent(&event)) {
+                AI::PlayInfo player_play = AI::play_info_null();
                 int x = screen_to_grid_x(mouse_x);
                 int y = screen_to_grid_y(x, mouse_y);
                 if (SDL_QUIT == event.type) {
@@ -165,14 +174,17 @@ int main(int argc, char *argv[])
                             bool valid = false;
                             if (selected_hex.color == Color::NoColor) {
                                 valid = game.put_piece(x, y, player_color, (Piece)selected_piece);
+                                if (valid) player_play = AI::play_info_put(0, Hex(0, x, y), (Piece)selected_piece);
                             }
                             else {
                                 // int layer = (selected_hex.piece == Piece::Beetle && game.grid[x][y][0].piece != Piece::NoPiece ? 1 : 0);
                                 // valid = game.move_piece(x, y, selected_hex, layer);
                                 if (selected_hex.color == player_color) {
                                     valid = game.move_piece(x, y, selected_hex);
+                                    if (valid) player_play = AI::play_info_move(0, selected_hex, Hex(0, x, y), selected_hex.piece);
                                     if (!valid && selected_hex.piece == Piece::Beetle) {
                                         valid = game.move_piece(x, y, selected_hex, 1);
+                                        if (valid) player_play = AI::play_info_move(0, selected_hex, Hex(1, x, y), selected_hex.piece);
                                     }
                                 }
 
@@ -185,7 +197,30 @@ int main(int argc, char *argv[])
                             if (DEBUG) cout << "PUT_event " << valid << endl;
                             if (valid && winner == Color::NoColor) {
                                 if (DEBUG) cout << "IA turn:" << endl;
-                                Minimax::play(game);
+
+#if USE_MCTS
+                                // mcts = new MCTS::Node;
+                                // mcts->play = AI::play_info_null();
+                                // mcts->color = ia_color;
+
+
+                                for (MCTS::Node* child : mcts->childs) {
+                                    if (child->play == player_play) {
+                                        mcts = child;
+                                        break;
+                                    }
+                                }
+                                mcts->parent = NULL;
+                                mcts->play = AI::play_info_null();
+                                // D(mcts->color) << endl;
+
+
+                                mcts = mcts->play_hive(game);
+#else
+                                Minimax::play_hive(game);
+#endif
+                                
+
                                 if (DEBUG) cout << "IA turn - END" << endl;
                                 winner = game.winner();
                                 if (winner != Color::NoColor) finish_game(game, winner);

@@ -14,8 +14,8 @@ namespace Hive
             Hex(int _x, int _y) : layer(-1), color(Color::NoColor), x(_x), y(_y), piece(Piece::NoPiece) {};
             Hex(int _layer, int _x, int _y) : layer(_layer), color(Color::NoColor), x(_x), y(_y), piece(Piece::NoPiece) {};
             Hex(int _layer, Color _color, int _x, int _y, Piece _piece) : layer(_layer), color(_color), x(_x), y(_y), piece(_piece) {};
-            Hex operator+(const Hex& h) const;
-            bool operator==(const Hex& h) const;
+            inline Hex operator+(const Hex& h) const;
+            inline bool operator==(const Hex& h) const;
             inline long long id() const;
             // layer : [0, 1]
             // color : [-1, 1]
@@ -33,7 +33,7 @@ namespace Hive
         return os;  
     }  
 
-    Hex Hex::operator+(const Hex& h) const
+    inline Hex Hex::operator+(const Hex& h) const
     {
         return Hex(layer, color, x + h.x, y + h.y, piece);
     }
