@@ -547,12 +547,31 @@ namespace Hive
 	{
 		unsigned long long H = 0;
 		
+		long long mx = GSIDE;
+		long long my = GSIDE;
+
 		for (long long layer = 0; layer < 1; ++layer) {
 			for (long long y = 0; y < GSIDE; ++y) {
 				for (long long x = 0; x < GSIDE; ++x) {
 					Hex h = grid[x][y][layer];
-					H += powAmodB[layer*GSIDE*GSIDE+y*GSIDE+x] * ((h.piece + 1) * 3 + (h.color + 1)) % B;
-					H %= B;
+					if (h.piece != Piece::NoPiece) {
+						mx = min(mx, x);
+						my = min(my, y);
+					}
+				}
+			}
+		}
+
+		for (long long layer = 0; layer < 1; ++layer) {
+			for (long long y = 0; y < GSIDE; ++y) {
+				for (long long x = 0; x < GSIDE; ++x) {
+					Hex h = grid[x][y][layer];
+					if (h.piece != Piece::NoPiece) {
+						long long x_ = x - mx;
+						long long y_ = y - my;
+						H += powAmodB[layer*GSIDE*GSIDE+y_*GSIDE+x_] * ((h.piece + 1) * 3 + (h.color + 1)) % B;
+						H %= B;
+					}
 				}
 			}
 		}

@@ -128,7 +128,7 @@ namespace MCTS
 	// 	return win;
 	// }
 
-	int Node::simulate(Game& game, clock_t time0, Color _color) binary -> win / lose
+	ll Node::simulate(Game& game, clock_t time0, Color _color) // binary -> win / lose
 	{
 		const int depth = 24;
 
@@ -165,6 +165,8 @@ namespace MCTS
 			stack1.pop_back();
 			stack2.pop_back();
 		}
+
+		return win;
 	}
 
 	// bool Node::simulate(Game& game, clock_t time0, Color _color) // optimized for future search

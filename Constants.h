@@ -15,7 +15,7 @@
 // DEBUG:
 #define D(x) std::cout << #x << " = " << (x) << ", "
 
-#define USE_MCTS 1
+#define USE_MCTS 0
 
 namespace Hive
 {
@@ -33,7 +33,7 @@ namespace Hive
 	const int NPIECES = 2*NPIECERPERPLAYER; // Number of pieces
 	const long long GSIDE = 30; // Grid side size
 	// const int MAXDEPTH = 4;
-	const int TLE = 5000; // milliseconds max time for ia turn
+	const int TLE = 2000;//5000; // milliseconds max time for ia turn
 	const int TT_size = 16384;
 	const Color player_color = Color::White;
 	const Color ia_color = Color::Black;
