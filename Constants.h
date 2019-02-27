@@ -23,7 +23,7 @@ namespace Hive
 	enum Piece { NoPiece = -1, Ant = 0, Bee = 1, Beetle = 2, Grasshopper = 3, Spider = 4 };
 	enum Color { NoColor = -1, Black = 0, White = 1 };
 
-	const bool DEBUG = true;
+	const bool DEBUG = false;
 	const int IINF = 0x7FFFFFFF;
 	const long long LINF = 0x7FFFFFFFFFFFFFFF;
 	const long double INF = 1e300;
@@ -33,7 +33,7 @@ namespace Hive
 	const int NPIECES = 2*NPIECERPERPLAYER; // Number of pieces
 	const long long GSIDE = 30; // Grid side size
 	// const int MAXDEPTH = 4;
-	const int TLE = 2000;//5000; // milliseconds max time for ia turn
+	const int TLE = 5000; // milliseconds max time for ia turn
 	const int TT_size = 16384;
 	const Color player_color = Color::White;
 	const Color ia_color = Color::Black;

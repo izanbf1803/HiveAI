@@ -201,7 +201,6 @@ namespace Hive
 
 		if (!validated) {
 			vector<Hex> vm = valid_moves(_h);
-
 			bool is_valid = false;
 			for (Hex pos : vm) {
 				if (pos.x == h.x && pos.y == h.y) {
@@ -215,6 +214,7 @@ namespace Hive
 
 		destroy(_h); // always destroy first to avoid piece tracking errors
 		spawn(x, y, h.color, h.piece, h.layer);
+
 		return true;
 	}
 
@@ -278,7 +278,6 @@ namespace Hive
 	{
 		assert(p.piece != Piece::NoPiece);
 		assert(p.color != Color::NoColor);
-
 		if (is_locked(p) || !bee_spawned[p.color]) {
 			return vector<Hex>();
 		}
